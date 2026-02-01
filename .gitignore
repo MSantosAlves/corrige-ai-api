@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+sample-files/
+.DS_Store
+dist/
+node_modules/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
