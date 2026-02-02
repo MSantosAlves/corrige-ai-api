@@ -1,1 +1,1 @@
-declare module "dotenv-safe";
+declare module 'dotenv-safe';
