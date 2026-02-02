@@ -1,21 +1,21 @@
-import * as dotenvSafe from "dotenv-safe";
-import { z } from "zod";
+import * as dotenvSafe from 'dotenv-safe';
+import { z } from 'zod';
 
-dotenvSafe.config({ example: ".env.example", allowEmptyValues: true });
+dotenvSafe.config({ example: '.env.example', allowEmptyValues: true });
 
 const envSchema = z.object({
   API_BASE_URL: z.string().min(1),
   API_PORT: z.coerce.number(),
-  ENV: z.string().optional().default("development"),
+  ENV: z.string().optional().default('development'),
   MONGODB_URI: z.string().min(1),
   MONGODB_DATABASE_NAME: z.string().min(1),
-  JWT_SECRET: z.string().optional().default("dev-secret"),
-  OCR_BASE_URL: z.string().optional().default("http://127.0.0.1:8000"),
+  JWT_SECRET: z.string().optional().default('dev-secret'),
+  OCR_BASE_URL: z.string().optional().default('http://127.0.0.1:8000'),
   OCR_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
   ANTHROPIC_FALLBACK_MODEL: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional()
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -30,5 +30,5 @@ export const env = envSchema.parse({
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
   ANTHROPIC_FALLBACK_MODEL: process.env.ANTHROPIC_FALLBACK_MODEL,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 });

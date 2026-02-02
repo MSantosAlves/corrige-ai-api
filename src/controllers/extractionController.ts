@@ -1,29 +1,24 @@
-import type { Request, Response } from "express";
+import type { Request, Response } from 'express';
 
-import {
-  listTaskExtractionsUseCase,
-  saveTaskExtractionUseCase
-} from "../usecases/extractions";
-import { taskExtractionRepository } from "../repositories/taskExtractionRepository";
+import { listTaskExtractionsUseCase, saveTaskExtractionUseCase } from '../usecases/extractions';
+import { TaskExtractionRepository } from '../repositories';
 
 export const saveTaskExtractionController = async (req: Request, res: Response) => {
   const taskId =
-    typeof req.body?.task_id === "string"
+    typeof req.body?.task_id === 'string'
       ? req.body.task_id
-      : typeof req.query?.task_id === "string"
-      ? req.query.task_id
-      : "";
+      : typeof req.query?.task_id === 'string'
+        ? req.query.task_id
+        : '';
   const ocrExtractionResult =
-    typeof req.body?.ocr_extraction_result === "string"
-      ? req.body.ocr_extraction_result
-      : "";
+    typeof req.body?.ocr_extraction_result === 'string' ? req.body.ocr_extraction_result : '';
   const analysisResult =
-    typeof req.body?.analysis_result === "string" ? req.body.analysis_result : "";
-  const filename = typeof req.body?.filename === "string" ? req.body.filename : "";
+    typeof req.body?.analysis_result === 'string' ? req.body.analysis_result : '';
+  const filename = typeof req.body?.filename === 'string' ? req.body.filename : '';
 
   if (!taskId || !ocrExtractionResult || !filename) {
     return res.status(400).json({
-      error: "task_id, ocr_extraction_result e filename são obrigatórios."
+      error: 'task_id, ocr_extraction_result e filename são obrigatórios.',
     });
   }
 
@@ -32,7 +27,7 @@ export const saveTaskExtractionController = async (req: Request, res: Response) 
       taskId,
       ocrExtractionResult,
       analysisResult,
-      filename
+      filename,
     });
     return res.status(201).json({
       id: created.id,
@@ -41,25 +36,24 @@ export const saveTaskExtractionController = async (req: Request, res: Response) 
       analysis_result: created.analysisResult,
       filename: created.filename,
       created_at: created.createdAt,
-      updated_at: created.updatedAt
+      updated_at: created.updatedAt,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Erro ao salvar extração.";
+    const message = error instanceof Error ? error.message : 'Erro ao salvar extração.';
     return res.status(400).json({ error: message });
   }
 };
 
 export const listTaskExtractionsController = async (req: Request, res: Response) => {
   const taskId =
-    typeof req.query?.task_id === "string"
+    typeof req.query?.task_id === 'string'
       ? req.query.task_id
-      : typeof req.body?.task_id === "string"
-      ? req.body.task_id
-      : "";
+      : typeof req.body?.task_id === 'string'
+        ? req.body.task_id
+        : '';
 
   if (!taskId) {
-    return res.status(400).json({ error: "task_id é obrigatório." });
+    return res.status(400).json({ error: 'task_id é obrigatório.' });
   }
 
   try {
@@ -72,32 +66,26 @@ export const listTaskExtractionsController = async (req: Request, res: Response)
         analysis_result: extraction.analysisResult,
         filename: extraction.filename,
         created_at: extraction.createdAt,
-        updated_at: extraction.updatedAt
-      }))
+        updated_at: extraction.updatedAt,
+      })),
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Erro ao listar extrações.";
+    const message = error instanceof Error ? error.message : 'Erro ao listar extrações.';
     return res.status(400).json({ error: message });
   }
 };
 
 export const getTaskExtractionController = async (req: Request, res: Response) => {
-  const id =
-    typeof req.params?.id === "string"
-      ? req.params.id
-      : "";
+  const id = typeof req.params?.id === 'string' ? req.params.id : '';
 
   if (!id) {
-    return res.status(400).json({ error: "id é obrigatório." });
+    return res.status(400).json({ error: 'id é obrigatório.' });
   }
 
   try {
-    const extraction = await taskExtractionRepository.getById(id);
+    const extraction = await TaskExtractionRepository.getById(id);
     if (!extraction) {
-      return res.status(404).json({ error: "Análise não encontrada." });
+      return res.status(404).json({ error: 'Análise não encontrada.' });
     }
     return res.json({
       id: extraction.id,
@@ -106,13 +94,10 @@ export const getTaskExtractionController = async (req: Request, res: Response) =
       analysis_result: extraction.analysisResult,
       filename: extraction.filename,
       created_at: extraction.createdAt,
-      updated_at: extraction.updatedAt
+      updated_at: extraction.updatedAt,
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Erro ao buscar análise.";
+    const message = error instanceof Error ? error.message : 'Erro ao buscar análise.';
     return res.status(400).json({ error: message });
   }
 };

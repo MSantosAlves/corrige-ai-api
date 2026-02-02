@@ -1,2 +1,2 @@
-export { createClassUseCase } from "./createClass";
-export { listClassesUseCase } from "./listClasses";
+export { createClassUseCase } from './createClass';
+export { listClassesUseCase } from './listClasses';

@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { randomUUID } from "crypto";
+import mongoose, { Schema } from 'mongoose';
+import { randomUUID } from 'crypto';
 
 export type TaskEntity = {
   id: string;
@@ -9,8 +9,6 @@ export type TaskEntity = {
   createdAt: string;
   updatedAt: string;
 };
-
-export type taskEntity = TaskEntity;
 
 type TaskDocument = mongoose.Document & {
   id: string;
@@ -26,15 +24,14 @@ const taskSchema = new Schema<TaskDocument>(
     id: { type: String, required: true, unique: true },
     class_id: { type: String, required: true, index: true },
     title: { type: String, required: true },
-    description: { type: String, default: "" },
+    description: { type: String, default: '' },
     created_at: { type: String, required: true },
-    updated_at: { type: String, required: true }
+    updated_at: { type: String, required: true },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
 
-const TaskModel =
-  mongoose.models.Task || mongoose.model<TaskDocument>("Task", taskSchema);
+const TaskModel = mongoose.models.Task || mongoose.model<TaskDocument>('Task', taskSchema);
 
 export const TaskRepository = {
   create: async (data: {
@@ -47,9 +44,9 @@ export const TaskRepository = {
       id: randomUUID(),
       class_id: data.classId,
       title: data.title,
-      description: data.description || "",
+      description: data.description || '',
       created_at: now,
-      updated_at: now
+      updated_at: now,
     };
     const created = await TaskModel.create(task);
     const saved = created.toObject() as TaskDocument;
@@ -59,13 +56,12 @@ export const TaskRepository = {
       title: saved.title,
       description: saved.description,
       createdAt: saved.created_at,
-      updatedAt: saved.updated_at
+      updatedAt: saved.updated_at,
     };
   },
 
   listByClassId: async (classId: string): Promise<TaskEntity[]> => {
-    const tasks = await TaskModel
-      .find({ class_id: classId })
+    const tasks = await TaskModel.find({ class_id: classId })
       .sort({ created_at: -1 })
       .lean<TaskDocument[]>()
       .exec();
@@ -75,7 +71,7 @@ export const TaskRepository = {
       title: taskItem.title,
       description: taskItem.description,
       createdAt: taskItem.created_at,
-      updatedAt: taskItem.updated_at
+      updatedAt: taskItem.updated_at,
     }));
   },
 
@@ -90,7 +86,7 @@ export const TaskRepository = {
       title: taskItem.title,
       description: taskItem.description,
       createdAt: taskItem.created_at,
-      updatedAt: taskItem.updated_at
+      updatedAt: taskItem.updated_at,
     };
   },
 
@@ -99,13 +95,13 @@ export const TaskRepository = {
     data: {
       title?: string;
       description?: string;
-    }
+    },
   ): Promise<TaskEntity | null> => {
     const now = new Date().toISOString();
     const updated = await TaskModel.findOneAndUpdate(
       { id },
       { ...data, updated_at: now },
-      { new: true }
+      { new: true },
     )
       .lean<TaskDocument | null>()
       .exec();
@@ -118,14 +114,14 @@ export const TaskRepository = {
       title: updated.title,
       description: updated.description,
       createdAt: updated.created_at,
-      updatedAt: updated.updated_at
+      updatedAt: updated.updated_at,
     };
   },
 
   delete: async (id: string): Promise<boolean> => {
     const result = await TaskModel.deleteOne({ id });
     return result.deletedCount > 0;
-  }
+  },
 };
 
 export const taskRepository = TaskRepository;

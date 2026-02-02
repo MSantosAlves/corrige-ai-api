@@ -1,10 +1,6 @@
-import { env } from "../config/env";
+import { env } from '../config/env';
 
-export type OCRDocumentType =
-  | "pdf_native"
-  | "printed"
-  | "handwritten"
-  | "auto";
+export type OCRDocumentType = 'pdf_native' | 'printed' | 'handwritten' | 'auto';
 
 type OCRClientConfig = {
   baseUrl?: string;
@@ -60,42 +56,36 @@ export class OCRClient {
     const contentType = this.getContentType(params.fileName);
     const fileData = this.toArrayBuffer(params.data);
 
-    formData.append(
-      "file",
-      new Blob([fileData], { type: contentType }),
-      params.fileName
-    );
+    formData.append('file', new Blob([fileData], { type: contentType }), params.fileName);
 
     if (params.documentType) {
-      formData.append("document_type", params.documentType);
+      formData.append('document_type', params.documentType);
     }
     if (params.language) {
-      formData.append("language", params.language);
+      formData.append('language', params.language);
     }
-    if (typeof params.preserveLayout === "boolean") {
-      formData.append("preserve_layout", String(params.preserveLayout));
+    if (typeof params.preserveLayout === 'boolean') {
+      formData.append('preserve_layout', String(params.preserveLayout));
     }
-    if (typeof params.qualityThreshold === "number") {
-      formData.append("quality_threshold", String(params.qualityThreshold));
+    if (typeof params.qualityThreshold === 'number') {
+      formData.append('quality_threshold', String(params.qualityThreshold));
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const response = await fetch(this.buildUrl("/api/v1/ocr/extract"), {
-        method: "POST",
-        headers: this.apiKey ? { "X-API-Key": this.apiKey } : undefined,
+      const response = await fetch(this.buildUrl('/api/v1/ocr/extract'), {
+        method: 'POST',
+        headers: this.apiKey ? { 'X-API-Key': this.apiKey } : undefined,
         body: formData,
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        const errorPayload =
-          (await this.safeJson<OCRErrorResponse>(response)) ?? {};
+        const errorPayload = (await this.safeJson<OCRErrorResponse>(response)) ?? {};
         const message =
-          errorPayload.error?.message ??
-          `OCR request failed with status ${response.status}.`;
+          errorPayload.error?.message ?? `OCR request failed with status ${response.status}.`;
         throw new Error(message);
       }
 
@@ -106,28 +96,25 @@ export class OCRClient {
   }
 
   private buildUrl(path: string): string {
-    return `${this.baseUrl.replace(/\/$/, "")}${path}`;
+    return `${this.baseUrl.replace(/\/$/, '')}${path}`;
   }
 
   private getContentType(fileName: string): string {
-    const extension = fileName.toLowerCase().split(".").pop();
-    if (extension === "pdf") {
-      return "application/pdf";
+    const extension = fileName.toLowerCase().split('.').pop();
+    if (extension === 'pdf') {
+      return 'application/pdf';
     }
-    if (extension === "png") {
-      return "image/png";
+    if (extension === 'png') {
+      return 'image/png';
     }
-    if (extension === "jpg" || extension === "jpeg" || extension === "jpepg") {
-      return "image/jpeg";
+    if (extension === 'jpg' || extension === 'jpeg' || extension === 'jpepg') {
+      return 'image/jpeg';
     }
-    return "application/octet-stream";
+    return 'application/octet-stream';
   }
 
   private toArrayBuffer(data: Buffer): ArrayBuffer {
-    return data.buffer.slice(
-      data.byteOffset,
-      data.byteOffset + data.byteLength
-    ) as ArrayBuffer;
+    return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   }
 
   private async safeJson<T>(response: Response): Promise<T | null> {

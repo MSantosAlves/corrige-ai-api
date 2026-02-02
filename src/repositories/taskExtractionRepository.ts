@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { randomUUID } from "crypto";
+import mongoose, { Schema } from 'mongoose';
+import { randomUUID } from 'crypto';
 
 export type TaskExtraction = {
   id: string;
@@ -10,8 +10,6 @@ export type TaskExtraction = {
   createdAt: string;
   updatedAt: string;
 };
-
-export type taskExtraction = TaskExtraction;
 
 type TaskExtractionDocument = mongoose.Document & {
   id: string;
@@ -31,16 +29,16 @@ const TaskExtractionSchema = new Schema<TaskExtractionDocument>(
     analysis_result: { type: String, required: true },
     filename: { type: String, required: true },
     created_at: { type: String, required: true },
-    updated_at: { type: String, required: true }
+    updated_at: { type: String, required: true },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
 
 const TaskExtractionModel =
-  mongoose.models["task-extractions"] ||
-  mongoose.model<TaskExtractionDocument>("task-extractions", TaskExtractionSchema);
+  mongoose.models['task-extractions'] ||
+  mongoose.model<TaskExtractionDocument>('task-extractions', TaskExtractionSchema);
 
-export const taskExtractionRepository = {
+export const TaskExtractionRepository = {
   create: async (data: {
     taskId: string;
     ocrExtractionResult: Record<string, unknown>;
@@ -55,7 +53,7 @@ export const taskExtractionRepository = {
       analysis_result: data.analysisResult,
       filename: data.filename,
       created_at: now,
-      updated_at: now
+      updated_at: now,
     };
     const created = await TaskExtractionModel.create(extraction);
     const saved = created.toObject() as TaskExtractionDocument;
@@ -66,13 +64,12 @@ export const taskExtractionRepository = {
       analysisResult: saved.analysis_result,
       filename: saved.filename,
       createdAt: saved.created_at,
-      updatedAt: saved.updated_at
+      updatedAt: saved.updated_at,
     };
   },
 
   listByTaskId: async (taskId: string): Promise<TaskExtraction[]> => {
-    const extractions = await TaskExtractionModel
-      .find({ task_id: taskId })
+    const extractions = await TaskExtractionModel.find({ task_id: taskId })
       .sort({ created_at: -1 })
       .lean<TaskExtractionDocument[]>()
       .exec();
@@ -83,13 +80,12 @@ export const taskExtractionRepository = {
       analysisResult: extraction.analysis_result,
       filename: extraction.filename,
       createdAt: extraction.created_at,
-      updatedAt: extraction.updated_at
+      updatedAt: extraction.updated_at,
     }));
   },
 
   getById: async (id: string): Promise<TaskExtraction | null> => {
-    const extraction = await TaskExtractionModel
-      .findOne({ id })
+    const extraction = await TaskExtractionModel.findOne({ id })
       .lean<TaskExtractionDocument | null>()
       .exec();
     if (!extraction) {
@@ -102,7 +98,7 @@ export const taskExtractionRepository = {
       analysisResult: extraction.analysis_result,
       filename: extraction.filename,
       createdAt: extraction.created_at,
-      updatedAt: extraction.updated_at
+      updatedAt: extraction.updated_at,
     };
-  }
+  },
 };
