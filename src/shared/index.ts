@@ -4,7 +4,7 @@ import cors from 'cors';
 import { env } from '@/infra/config/env';
 import { connectMongo } from '@/infra/db/mongo';
 import { appRouter } from '@/infra/http/routes';
-import { requestLogger } from '@/infra/http/middlewares/middlewares';
+import { requestLogger } from '@/infra/http/middlewares';
 import { logger } from '@/shared/logger';
 
 const app = express();

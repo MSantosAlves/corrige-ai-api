@@ -13,7 +13,7 @@ import {
   listTaskExtractionsController,
   getTaskExtractionController,
 } from '@/infra/http/controllers';
-import { authMiddleware } from '@/infra/http/middlewares/middlewares/auth';
+import { authMiddleware } from '@/infra/http/middlewares';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });

@@ -19,19 +19,21 @@
 
 # API architecture
 
-src/
-- config/
-- controllers/
-- db/
-- llm/
-- middlewares/
-- ocr/
-- repositories/
-- routes/
-- types/
-- usecases/
-  - auth/
-  - classes/
-  - extractions/
-  - ocr/
-  - tasks/
+src
+│   │   ├── application
+│   │   │   └── usecases
+│   │   ├── domain
+│   │   │   └── entities
+│   │   ├── infra
+│   │   │   ├── config
+│   │   │   │   └── env.ts
+│   │   │   ├── db
+│   │   │   │   ├── mongo.ts
+│   │   │   ├── http
+│   │   │   │   ├── controllers
+│   │   │   │   ├── middlewares
+│   │   │   │   └── routes
+│   │   │   └── providers
+│   │   ├── shared
+│   │   └── types
+│   └── tsconfig.json
