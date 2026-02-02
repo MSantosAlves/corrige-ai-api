@@ -2,9 +2,9 @@
   "name": "corrige-ai",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "tsx watch src/shared/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/shared/index.js",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\""
@@ -36,6 +36,7 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
+    "tsc-alias": "^1.8.16",
     "tsx": "latest",
     "typescript": "latest"
   }
