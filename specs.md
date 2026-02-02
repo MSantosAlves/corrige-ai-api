@@ -3,7 +3,8 @@
 ## Milestones
 
 ### 1. Foundation
-- [ ] Code refactor: add Prettier and ESLint, and verify all code guidelines from `AGENTS.md`.
+- [x] Code refactor: add Prettier and ESLint, and verify all code guidelines from `AGENTS.md`.
+- [x] Configure application logging.
 
 ### 2. Extraction pipeline
 - [ ] Bulk upload files: connect to OCR service, send multiple files, and support polling for progress.

@@ -1,9 +1,11 @@
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
 
 import { env } from '@/infra/config/env';
 import { connectMongo } from '@/infra/db/mongo';
 import { appRouter } from '@/infra/http/routes';
+import { requestLogger } from '@/infra/http/middlewares/middlewares';
+import { logger } from '@/shared/logger';
 
 const app = express();
 const port = env.API_PORT;
@@ -14,36 +16,23 @@ app.use(
   }),
 );
 app.use(express.json());
-
-app.use((req, res, next) => {
-  const startedAt = Date.now();
-  console.log(`[REQ] ${req.method} ${req.originalUrl}`);
-  res.on('finish', () => {
-    const durationMs = Date.now() - startedAt;
-    const status = res.statusCode;
-    if (status >= 400) {
-      console.error(`[ERR] ${req.method} ${req.originalUrl} ${status} ${durationMs}ms`);
-    } else {
-      console.log(`[RES] ${req.method} ${req.originalUrl} ${status} ${durationMs}ms`);
-    }
-  });
-  next();
-});
+app.use(requestLogger);
 
 app.use(appRouter);
 
-app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(`[ERR] ${req.method} ${req.originalUrl}`, err);
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  const reqLogger = (req as Request & { log?: typeof logger }).log ?? logger;
+  reqLogger.error({ err }, 'Unhandled request error');
   res.status(500).json({ error: 'Erro inesperado.' });
 });
 
 app.listen(port, async () => {
   if (env.ENV === 'development') {
-    console.log(`API_BASE_URL: ${env.API_BASE_URL}:${port}`);
+    logger.info({ port, baseUrl: env.API_BASE_URL }, 'API server running');
   }
   try {
     await connectMongo();
   } catch {
-    console.error('[MongoDB] Failed to connect. Check MONGODB_URI.');
+    logger.error('[MongoDB] Failed to connect. Check MONGODB_URI.');
   }
 });
