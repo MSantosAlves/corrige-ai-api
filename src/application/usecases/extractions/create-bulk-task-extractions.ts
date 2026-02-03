@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
-import { OCRClient, type OCRAsyncJobStatus, type OCRDocumentType } from '@/infra/providers/ocr/ocr-client';
 import {
-  TaskExtractionBatchRepository,
-  TaskExtractionRepository,
-} from '@/infra/db/repositories';
+  OCRClient,
+  type OCRAsyncJobStatus,
+  type OCRDocumentType,
+} from '@/infra/providers/ocr/ocr-client';
+import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import { enqueueBulkExtractionPoll } from '@/infra/queues/bulk-extraction-queue';
 import { type TaskExtractionBatchStatus, type TaskExtractionEntity } from '@/domain/entities';
 

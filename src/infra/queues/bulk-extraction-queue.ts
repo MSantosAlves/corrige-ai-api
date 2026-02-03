@@ -7,10 +7,7 @@ export const bulkExtractionQueue = new Queue('bulk-extraction', {
   connection: redisConnection,
 });
 
-export const enqueueBulkExtractionPoll = async (
-  batchId: string,
-  delayMs = 3000,
-): Promise<void> => {
+export const enqueueBulkExtractionPoll = async (batchId: string, delayMs = 3000): Promise<void> => {
   const uniqueJobId = `${batchId}-${Date.now()}`;
   await bulkExtractionQueue.add(
     'poll-batch',
@@ -22,8 +19,5 @@ export const enqueueBulkExtractionPoll = async (
       removeOnFail: false,
     },
   );
-  logger.info(
-    { batchId, jobId: uniqueJobId, delayMs },
-    'Bulk extraction poll enqueued',
-  );
+  logger.info({ batchId, jobId: uniqueJobId, delayMs }, 'Bulk extraction poll enqueued');
 };

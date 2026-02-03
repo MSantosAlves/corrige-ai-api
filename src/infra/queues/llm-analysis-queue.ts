@@ -6,10 +6,7 @@ export const llmAnalysisQueue = new Queue('llm-analysis', {
   connection: redisConnection,
 });
 
-export const enqueueLlmAnalysis = async (
-  extractionId: string,
-  delayMs = 0,
-): Promise<void> => {
+export const enqueueLlmAnalysis = async (extractionId: string, delayMs = 0): Promise<void> => {
   await llmAnalysisQueue.add(
     'analyze-extraction',
     { extractionId },

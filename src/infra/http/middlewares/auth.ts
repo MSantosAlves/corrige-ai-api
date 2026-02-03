@@ -14,9 +14,7 @@ const jwtSecret = env.JWT_SECRET;
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.header('authorization');
   const bearerToken =
-    authHeader && authHeader.toLowerCase().startsWith('bearer ')
-      ? authHeader.slice(7).trim()
-      : '';
+    authHeader && authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
   const queryToken = typeof req.query?.token === 'string' ? req.query.token : '';
   const token = bearerToken || queryToken;
 

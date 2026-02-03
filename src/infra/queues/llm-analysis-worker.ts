@@ -11,8 +11,7 @@ export const startLlmAnalysisWorker = (): void => {
   const worker = new Worker(
     'llm-analysis',
     async (job) => {
-      const extractionId =
-        typeof job.data?.extractionId === 'string' ? job.data.extractionId : '';
+      const extractionId = typeof job.data?.extractionId === 'string' ? job.data.extractionId : '';
       if (!extractionId) {
         throw new Error('extractionId is required');
       }

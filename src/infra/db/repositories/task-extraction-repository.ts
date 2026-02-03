@@ -154,7 +154,9 @@ export const TaskExtractionRepository = {
     const nextStatus =
       typeof data.status === 'string' && !shouldPreserveStatus ? data.status : current.status;
     const nextOcrResult =
-      data.ocrExtractionResult !== undefined ? data.ocrExtractionResult : current.ocr_extraction_result;
+      data.ocrExtractionResult !== undefined
+        ? data.ocrExtractionResult
+        : current.ocr_extraction_result;
     const nextAnalysisResult =
       data.analysisResult !== undefined ? data.analysisResult : current.analysis_result;
 

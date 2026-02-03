@@ -1,9 +1,4 @@
-export type TaskExtractionStatus =
-  | 'pending'
-  | 'ocr_finished'
-  | 'analysing'
-  | 'done'
-  | 'error';
+export type TaskExtractionStatus = 'pending' | 'ocr_finished' | 'analysing' | 'done' | 'error';
 
 export type TaskExtractionEntity = {
   id: string;

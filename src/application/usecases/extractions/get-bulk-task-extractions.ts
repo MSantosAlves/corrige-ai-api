@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-import {
-  TaskExtractionBatchRepository,
-  TaskExtractionRepository,
-} from '@/infra/db/repositories';
+import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import { type TaskExtractionBatchStatus, type TaskExtractionEntity } from '@/domain/entities';
 
 const getSchema = z.string().uuid();
@@ -27,8 +24,7 @@ export const getBulkTaskExtractionsUseCase = async (
   const completedCount = items.filter(
     (item) => item.status === 'done' || item.status === 'error',
   ).length;
-  const pipelineStatus =
-    totalCount > 0 && completedCount === totalCount ? 'done' : 'processing';
+  const pipelineStatus = totalCount > 0 && completedCount === totalCount ? 'done' : 'processing';
 
   if (pipelineStatus !== batch.status) {
     await TaskExtractionBatchRepository.updateStatus(batch.id, pipelineStatus);

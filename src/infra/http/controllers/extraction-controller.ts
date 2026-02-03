@@ -5,7 +5,6 @@ import {
   createBulkTaskExtractionsUseCase,
   getBulkTaskExtractionsUseCase,
   listTaskExtractionsUseCase,
-  pollBulkTaskExtractionsUseCase,
   saveTaskExtractionUseCase,
 } from '@/application/usecases/extractions';
 import { TaskExtractionRepository } from '@/infra/db/repositories';

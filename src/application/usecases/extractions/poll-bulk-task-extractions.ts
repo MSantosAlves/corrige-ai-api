@@ -80,11 +80,7 @@ export const pollBulkTaskExtractionsUseCase = async (
     (item) => item.status === 'done' || item.status === 'error',
   ).length;
   const pipelineStatus =
-    totalCount === 0
-      ? ocrBatchStatus
-      : completedCount === totalCount
-        ? 'done'
-        : 'processing';
+    totalCount === 0 ? ocrBatchStatus : completedCount === totalCount ? 'done' : 'processing';
 
   if (pipelineStatus !== batch.status) {
     await TaskExtractionBatchRepository.updateStatus(batch.id, pipelineStatus);
