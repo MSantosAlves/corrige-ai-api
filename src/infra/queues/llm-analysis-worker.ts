@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 
 import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { redisConnection } from '@/infra/queues/redis';
+import { TaskExtractionStatuses } from '@/domain/entities';
 import { TaskExtractionRepository } from '@/infra/db/repositories';
 import { logger } from '@/shared/logger';
 
@@ -27,14 +28,14 @@ export const startLlmAnalysisWorker = (): void => {
       }
 
       await TaskExtractionRepository.updateById(extraction.id, {
-        status: 'analysing',
+        status: TaskExtractionStatuses.TEXT_ANALYSIS,
       });
 
       const ocrResult = extraction.ocrExtractionResult as { text?: string; document_type?: string };
       const extractedText = typeof ocrResult.text === 'string' ? ocrResult.text : '';
       if (!extractedText.trim()) {
         await TaskExtractionRepository.updateById(extraction.id, {
-          status: 'error',
+          status: TaskExtractionStatuses.ERROR,
           analysisResult: 'Empty OCR text.',
         });
         logger.info(
@@ -50,7 +51,7 @@ export const startLlmAnalysisWorker = (): void => {
       );
 
       await TaskExtractionRepository.updateById(extraction.id, {
-        status: 'done',
+        status: TaskExtractionStatuses.DONE,
         analysisResult: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),
       });
       logger.info({ extractionId, jobId: job.id }, 'LLM analysis worker finished');

@@ -7,7 +7,12 @@ import {
 } from '@/infra/providers/ocr/ocr-client';
 import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import { enqueueBulkExtractionPoll } from '@/infra/queues/bulk-extraction-queue';
-import { type TaskExtractionBatchStatus, type TaskExtractionEntity } from '@/domain/entities';
+import {
+  TaskExtractionBatchStatuses,
+  TaskExtractionStatuses,
+  type TaskExtractionBatchStatus,
+  type TaskExtractionEntity,
+} from '@/domain/entities';
 
 const ocrClientInstance = new OCRClient();
 
@@ -28,27 +33,27 @@ const bulkFilesSchema = z.array(bulkFileSchema).min(1);
 
 const mapBatchStatus = (status: OCRAsyncJobStatus): TaskExtractionBatchStatus => {
   if (status === 'FAILED' || status === 'CANCELED') {
-    return 'error';
+    return TaskExtractionBatchStatuses.ERROR;
   }
   if (status === 'SUCCESS' || status === 'PARTIAL_SUCCESS') {
-    return 'done';
+    return TaskExtractionBatchStatuses.DONE;
   }
   if (status === 'STARTED') {
-    return 'processing';
+    return TaskExtractionBatchStatuses.PROCESSING;
   }
-  return 'pending';
+  return TaskExtractionBatchStatuses.PENDING;
 };
 
 const mapExtractionStatus = (
   status: OCRAsyncJobStatus,
-): 'pending' | 'ocr_finished' | 'analysing' | 'done' | 'error' => {
+): 'PENDING' | 'TEXT_EXTRACTION' | 'TEXT_ANALYSIS' | 'DONE' | 'ERROR' => {
   if (status === 'FAILED' || status === 'CANCELED') {
-    return 'error';
+    return TaskExtractionStatuses.ERROR;
   }
   if (status === 'SUCCESS' || status === 'PARTIAL_SUCCESS') {
-    return 'ocr_finished';
+    return TaskExtractionStatuses.TEXT_EXTRACTION;
   }
-  return 'pending';
+  return TaskExtractionStatuses.PENDING;
 };
 
 export const createBulkTaskExtractionsUseCase = async (data: {

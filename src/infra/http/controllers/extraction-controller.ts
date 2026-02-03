@@ -7,6 +7,7 @@ import {
   listTaskExtractionsUseCase,
   saveTaskExtractionUseCase,
 } from '@/application/usecases/extractions';
+import { TaskExtractionBatchStatuses, TaskExtractionStatuses } from '@/domain/entities';
 import { TaskExtractionRepository } from '@/infra/db/repositories';
 import { logger } from '@/shared/logger';
 
@@ -129,7 +130,9 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
       const result = await getBulkTaskExtractionsUseCase(batchId);
       const totalCount = result.items.length;
       const completedCount = result.items.filter(
-        (item) => item.status === 'done' || item.status === 'error',
+        (item) =>
+          item.status === TaskExtractionStatuses.DONE ||
+          item.status === TaskExtractionStatuses.ERROR,
       ).length;
       const payload = {
         batch_id: result.batchId,
@@ -142,7 +145,10 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
       };
       sendEvent('status', payload);
 
-      if (result.status === 'done' || result.status === 'error') {
+      if (
+        result.status === TaskExtractionBatchStatuses.DONE ||
+        result.status === TaskExtractionBatchStatuses.ERROR
+      ) {
         sendEvent('done', payload);
         cleanup();
         res.end();

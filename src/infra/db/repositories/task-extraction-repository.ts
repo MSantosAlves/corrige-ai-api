@@ -1,7 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
 import { randomUUID } from 'crypto';
 
-import { type TaskExtractionEntity, type TaskExtractionStatus } from '@/domain/entities';
+import {
+  TaskExtractionStatuses,
+  type TaskExtractionEntity,
+  type TaskExtractionStatus,
+} from '@/domain/entities';
 
 type TaskExtractionDocument = mongoose.Document & {
   id: string;
@@ -51,7 +55,7 @@ export const TaskExtractionRepository = {
       id: randomUUID(),
       task_id: data.taskId,
       batch_id: data.batchId ?? null,
-      status: data.status ?? 'pending',
+      status: data.status ?? TaskExtractionStatuses.PENDING,
       ocr_result_id: data.ocrResultId ?? null,
       ocr_extraction_result: data.ocrExtractionResult ?? null,
       analysis_result: data.analysisResult ?? null,
@@ -150,7 +154,9 @@ export const TaskExtractionRepository = {
     }
 
     const shouldPreserveStatus =
-      current.status === 'analysing' || current.status === 'done' || current.status === 'error';
+      current.status === TaskExtractionStatuses.TEXT_ANALYSIS ||
+      current.status === TaskExtractionStatuses.DONE ||
+      current.status === TaskExtractionStatuses.ERROR;
     const nextStatus =
       typeof data.status === 'string' && !shouldPreserveStatus ? data.status : current.status;
     const nextOcrResult =

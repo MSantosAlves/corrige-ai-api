@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 
 import { pollBulkTaskExtractionsUseCase } from '@/application/usecases/extractions';
+import { TaskExtractionBatchStatuses } from '@/domain/entities';
 import { redisConnection } from '@/infra/queues/redis';
 import { enqueueBulkExtractionPoll } from '@/infra/queues/bulk-extraction-queue';
 import { logger } from '@/shared/logger';
@@ -19,7 +20,10 @@ export const startBulkExtractionWorker = (): void => {
       logger.info({ batchId, jobId: job.id }, 'Bulk extraction worker started');
       const result = await pollBulkTaskExtractionsUseCase(batchId);
 
-      if (result.status === 'pending' || result.status === 'processing') {
+      if (
+        result.status === TaskExtractionBatchStatuses.PENDING ||
+        result.status === TaskExtractionBatchStatuses.PROCESSING
+      ) {
         await enqueueBulkExtractionPoll(batchId, POLL_DELAY_MS);
       }
       logger.info(

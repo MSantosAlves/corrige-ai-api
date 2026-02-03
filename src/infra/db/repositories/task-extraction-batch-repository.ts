@@ -1,7 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
 import { randomUUID } from 'crypto';
 
-import { type TaskExtractionBatchEntity, type TaskExtractionBatchStatus } from '@/domain/entities';
+import {
+  TaskExtractionBatchStatuses,
+  type TaskExtractionBatchEntity,
+  type TaskExtractionBatchStatus,
+} from '@/domain/entities';
 
 type TaskExtractionBatchDocument = mongoose.Document & {
   id: string;
@@ -39,7 +43,7 @@ export const TaskExtractionBatchRepository = {
       id: randomUUID(),
       task_id: data.taskId,
       ocr_job_id: data.ocrJobId,
-      status: data.status ?? 'pending',
+      status: data.status ?? TaskExtractionBatchStatuses.PENDING,
       created_at: now,
       updated_at: now,
     };

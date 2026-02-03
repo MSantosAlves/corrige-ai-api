@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 import { OCRClient, type OCRAsyncJobStatus } from '@/infra/providers/ocr/ocr-client';
 import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
-import { type TaskExtractionBatchStatus, type TaskExtractionEntity } from '@/domain/entities';
+import {
+  TaskExtractionBatchStatuses,
+  TaskExtractionStatuses,
+  type TaskExtractionBatchStatus,
+  type TaskExtractionEntity,
+} from '@/domain/entities';
 import { enqueueLlmAnalysis } from '@/infra/queues/llm-analysis-queue';
 
 const ocrClientInstance = new OCRClient();
@@ -11,28 +16,28 @@ const pollSchema = z.string().uuid();
 
 const mapBatchStatus = (status: OCRAsyncJobStatus): TaskExtractionBatchStatus => {
   if (status === 'FAILED' || status === 'CANCELED') {
-    return 'error';
+    return TaskExtractionBatchStatuses.ERROR;
   }
   if (status === 'SUCCESS' || status === 'PARTIAL_SUCCESS') {
-    return 'done';
+    return TaskExtractionBatchStatuses.DONE;
   }
   if (status === 'STARTED') {
-    return 'processing';
+    return TaskExtractionBatchStatuses.PROCESSING;
   }
-  return 'pending';
+  return TaskExtractionBatchStatuses.PENDING;
 };
 
 const mapExtractionStatus = (
   status: OCRAsyncJobStatus,
   hasResult: boolean,
-): 'pending' | 'ocr_finished' | 'analysing' | 'done' | 'error' => {
+): 'PENDING' | 'TEXT_EXTRACTION' | 'TEXT_ANALYSIS' | 'DONE' | 'ERROR' => {
   if (status === 'FAILED' || status === 'CANCELED') {
-    return 'error';
+    return TaskExtractionStatuses.ERROR;
   }
   if (hasResult) {
-    return 'ocr_finished';
+    return TaskExtractionStatuses.TEXT_EXTRACTION;
   }
-  return 'pending';
+  return TaskExtractionStatuses.PENDING;
 };
 
 export const pollBulkTaskExtractionsUseCase = async (
@@ -67,7 +72,7 @@ export const pollBulkTaskExtractionsUseCase = async (
       .filter(
         (extraction): extraction is TaskExtractionEntity =>
           extraction !== null &&
-          extraction.status === 'ocr_finished' &&
+          extraction.status === TaskExtractionStatuses.TEXT_EXTRACTION &&
           Boolean(extraction.ocrExtractionResult) &&
           !extraction.analysisResult,
       )
@@ -77,10 +82,16 @@ export const pollBulkTaskExtractionsUseCase = async (
   const items = await TaskExtractionRepository.listByBatchId(batch.id);
   const totalCount = items.length;
   const completedCount = items.filter(
-    (item) => item.status === 'done' || item.status === 'error',
+    (item) =>
+      item.status === TaskExtractionStatuses.DONE ||
+      item.status === TaskExtractionStatuses.ERROR,
   ).length;
   const pipelineStatus =
-    totalCount === 0 ? ocrBatchStatus : completedCount === totalCount ? 'done' : 'processing';
+    totalCount === 0
+      ? ocrBatchStatus
+      : completedCount === totalCount
+        ? TaskExtractionBatchStatuses.DONE
+        : TaskExtractionBatchStatuses.PROCESSING;
 
   if (pipelineStatus !== batch.status) {
     await TaskExtractionBatchRepository.updateStatus(batch.id, pipelineStatus);

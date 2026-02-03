@@ -1,4 +1,13 @@
-export type TaskExtractionStatus = 'pending' | 'ocr_finished' | 'analysing' | 'done' | 'error';
+export const TaskExtractionStatuses = {
+  PENDING: 'PENDING',
+  TEXT_EXTRACTION: 'TEXT_EXTRACTION',
+  TEXT_ANALYSIS: 'TEXT_ANALYSIS',
+  DONE: 'DONE',
+  ERROR: 'ERROR',
+} as const;
+
+export type TaskExtractionStatus =
+  (typeof TaskExtractionStatuses)[keyof typeof TaskExtractionStatuses];
 
 export type TaskExtractionEntity = {
   id: string;
