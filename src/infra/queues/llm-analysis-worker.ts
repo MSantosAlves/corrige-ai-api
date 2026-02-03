@@ -3,8 +3,9 @@ import { Worker } from 'bullmq';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { redisConnection } from '@/infra/queues/redis';
 import { TaskExtractionStatuses } from '@/domain/entities';
-import { TaskExtractionRepository } from '@/infra/db/repositories';
+import { TaskExtractionRepository, TaskRepository, GradeCriteriaRepository } from '@/infra/db/repositories';
 import { logger } from '@/shared/logger';
+import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
 
 const llmClientInstance = new LlmClient();
 
@@ -44,11 +45,30 @@ export const startLlmAnalysisWorker = (): void => {
         );
         return;
       }
+      
+      let analysis = '';
+      try {
+        const task = await TaskRepository.getById(extraction.taskId);
+        if (task?.gradeCriteriaId) {
+          const criteria = await GradeCriteriaRepository.getById(task.gradeCriteriaId);
+          if (criteria) {
+            const prompt = buildGradeCriteriaPrompt(criteria, extractedText);
+            analysis = await llmClientInstance.analyzeWithPrompt(prompt);
+          }
+        }
+      } catch (promptError) {
+        logger.warn(
+          { extractionId, jobId: job.id, err: promptError },
+          'Failed to build grade criteria prompt, falling back to default analysis',
+        );
+      }
 
-      const analysis = await llmClientInstance.analyzeText(
-        extractedText,
-        ocrResult.document_type ?? 'auto',
-      );
+      if (!analysis) {
+        analysis = await llmClientInstance.analyzeText(
+          extractedText,
+          ocrResult.document_type ?? 'auto',
+        );
+      }
 
       await TaskExtractionRepository.updateById(extraction.id, {
         status: TaskExtractionStatuses.DONE,

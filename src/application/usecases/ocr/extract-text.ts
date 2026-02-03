@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { OCRClient, type OCRDocumentType } from '@/infra/providers/ocr/ocr-client';
 import { saveTaskExtractionUseCase } from '@/application/usecases/extractions';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
+import { GradeCriteriaRepository, TaskRepository } from '@/infra/db/repositories';
+import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
 
 const ocrClientInstance = new OCRClient();
 const llmClientInstance = new LlmClient();
@@ -44,13 +46,31 @@ export const extractTextUseCase = async (req: Request) => {
     qualityThreshold,
   });
 
-  const analysis =
-    ocrResponse.text && ocrResponse.text.trim().length > 0
-      ? await llmClientInstance.analyzeText(
-          ocrResponse.text,
-          documentType ?? ocrResponse.document_type,
-        )
-      : '';
+  let analysis = '';
+  const extractedText = ocrResponse.text && ocrResponse.text.trim().length > 0 ? ocrResponse.text : '';
+  if (extractedText) {
+    try {
+      if (taskId) {
+        const task = await TaskRepository.getById(taskId);
+        if (task?.gradeCriteriaId) {
+          const criteria = await GradeCriteriaRepository.getById(task.gradeCriteriaId);
+          if (criteria) {
+            const prompt = buildGradeCriteriaPrompt(criteria, extractedText);
+            analysis = await llmClientInstance.analyzeWithPrompt(prompt);
+          }
+        }
+      }
+    } catch (promptError) {
+      console.warn('Falha ao aplicar prompt de critérios, usando análise padrão.', promptError);
+    }
+
+    if (!analysis) {
+      analysis = await llmClientInstance.analyzeText(
+        extractedText,
+        documentType ?? ocrResponse.document_type,
+      );
+    }
+  }
 
   if (taskId) {
     try {

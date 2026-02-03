@@ -1,4 +1,5 @@
 import { env } from '../../config/env';
+import { logger } from '@/shared/logger';
 
 type AnthropicMessageContent = {
   type: 'text';
@@ -60,6 +61,35 @@ export class LlmClient {
         .join('\n')
         .trim() || ''
     );
+  }
+
+  async analyzeWithPrompt(prompt: string): Promise<string> {
+    if (!this.anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY is required for text analysis.');
+    }
+
+    logger.info({ prompt }, 'LLM analysis with custom prompt started');
+    const data = await this.requestAnthropic({
+      model: env.ANTHROPIC_MODEL,
+      max_tokens: 700,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt,
+            },
+          ],
+        },
+      ],
+    });
+    const responseText = data.content?.map((item) => item.text).join('\n').trim() || '';
+    logger.info(
+      { prompt, response: responseText },
+      'LLM analysis with custom prompt finished',
+    );
+    return responseText;
   }
 
   private async requestAnthropic(payload: Record<string, unknown>): Promise<AnthropicResponse> {
