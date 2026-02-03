@@ -15,6 +15,9 @@ import {
   createBulkTaskExtractionsController,
   pollBulkTaskExtractionsController,
   streamBulkTaskExtractionsController,
+  createGradeCriteriaController,
+  listGradeCriteriaController,
+  attachGradeCriteriaToTaskController,
 } from '@/infra/http/controllers';
 import { authMiddleware } from '@/infra/http/middlewares';
 
@@ -33,8 +36,11 @@ router.use(authMiddleware);
 router.post('/extract-text', upload.single('file'), extractTextController);
 router.post('/classes', createClassController);
 router.get('/classes', listClassesController);
+router.post('/criteria', createGradeCriteriaController);
+router.get('/criteria', listGradeCriteriaController);
 router.post('/tasks', createTaskController);
 router.get('/tasks', listTasksController);
+router.post('/tasks/:id/criteria', attachGradeCriteriaToTaskController);
 router.post('/extractions', saveTaskExtractionController);
 router.post(
   '/extractions/bulk',
