@@ -13,11 +13,16 @@ const jwtSecret = env.JWT_SECRET;
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.header('authorization');
-  if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
+  const bearerToken =
+    authHeader && authHeader.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice(7).trim()
+      : '';
+  const queryToken = typeof req.query?.token === 'string' ? req.query.token : '';
+  const token = bearerToken || queryToken;
+
+  if (!token) {
     return res.status(401).json({ error: 'Token de autenticação ausente.' });
   }
-
-  const token = authHeader.slice(7).trim();
   try {
     const payload = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
     const userId = typeof payload.sub === 'string' ? payload.sub : '';

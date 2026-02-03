@@ -8,6 +8,8 @@
 
 ### 2. Extraction pipeline
 - [ ] Bulk upload files: connect to OCR service, send multiple files, and support polling for progress.
+- [ ] Implement background polling with BullMQ for bulk extraction jobs.
+- [ ] SSE endpoint auth strategy (cookies vs token in query) and middleware rules.
 - [ ] Allow user-defined custom prompts on the extraction endpoint.
 - [ ] Add task extraction statuses: pending, reviewed, error.
 

@@ -6,4 +6,7 @@ export {
   saveTaskExtractionController,
   listTaskExtractionsController,
   getTaskExtractionController,
+  createBulkTaskExtractionsController,
+  pollBulkTaskExtractionsController,
+  streamBulkTaskExtractionsController,
 } from './extraction-controller';

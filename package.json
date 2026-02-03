@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.67.2",
     "cors": "latest",
     "dotenv": "latest",
     "dotenv-safe": "^9.1.0",
     "express": "latest",
+    "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
     "multer": "latest",
