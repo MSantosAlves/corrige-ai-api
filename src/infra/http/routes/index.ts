@@ -41,8 +41,6 @@ router.post(
   upload.array('files'),
   createBulkTaskExtractionsController as express.RequestHandler,
 );
-router.get('/extractions', listTaskExtractionsController);
-router.get('/extractions/:id', getTaskExtractionController);
 router.get(
   '/extractions/bulk/:batchId',
   pollBulkTaskExtractionsController as express.RequestHandler,
@@ -51,5 +49,7 @@ router.get(
   '/extractions/bulk/:batchId/events',
   streamBulkTaskExtractionsController as express.RequestHandler,
 );
+router.get('/extractions', listTaskExtractionsController);
+router.get('/extractions/:id', getTaskExtractionController);
 
 export { router as appRouter };

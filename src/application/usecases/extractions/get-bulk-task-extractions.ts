@@ -32,9 +32,11 @@ export const getBulkTaskExtractionsUseCase = async (
       item.status === TaskExtractionStatuses.ERROR,
   ).length;
   const pipelineStatus =
-    totalCount > 0 && completedCount === totalCount
-      ? TaskExtractionBatchStatuses.DONE
-      : TaskExtractionBatchStatuses.PROCESSING;
+    totalCount === 0
+      ? batch.status
+      : completedCount === totalCount
+        ? TaskExtractionBatchStatuses.DONE
+        : TaskExtractionBatchStatuses.PROCESSING;
 
   if (pipelineStatus !== batch.status) {
     await TaskExtractionBatchRepository.updateStatus(batch.id, pipelineStatus);
