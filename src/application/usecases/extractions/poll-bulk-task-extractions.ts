@@ -83,8 +83,7 @@ export const pollBulkTaskExtractionsUseCase = async (
   const totalCount = items.length;
   const completedCount = items.filter(
     (item) =>
-      item.status === TaskExtractionStatuses.DONE ||
-      item.status === TaskExtractionStatuses.ERROR,
+      item.status === TaskExtractionStatuses.DONE || item.status === TaskExtractionStatuses.ERROR,
   ).length;
   const pipelineStatus =
     totalCount === 0

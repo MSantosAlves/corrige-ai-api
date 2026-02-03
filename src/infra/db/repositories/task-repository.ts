@@ -1,13 +1,15 @@
 import mongoose, { Schema } from 'mongoose';
 import { randomUUID } from 'crypto';
 
-import { type TaskEntity } from '@/domain/entities';
+import { type GradeCriteriaClassification, type TaskEntity } from '@/domain/entities';
 
 type TaskDocument = mongoose.Document & {
   id: string;
   class_id: string;
   title: string;
   description?: string;
+  classification?: GradeCriteriaClassification;
+  grade_criteria_id?: string;
   created_at: string;
   updated_at: string;
 };
@@ -18,6 +20,8 @@ const taskSchema = new Schema<TaskDocument>(
     class_id: { type: String, required: true, index: true },
     title: { type: String, required: true },
     description: { type: String, default: '' },
+    classification: { type: String, required: false, index: true },
+    grade_criteria_id: { type: String, required: false, index: true },
     created_at: { type: String, required: true },
     updated_at: { type: String, required: true },
   },
@@ -48,6 +52,8 @@ export const TaskRepository = {
       classId: saved.class_id,
       title: saved.title,
       description: saved.description,
+      classification: saved.classification,
+      gradeCriteriaId: saved.grade_criteria_id,
       createdAt: saved.created_at,
       updatedAt: saved.updated_at,
     };
@@ -63,6 +69,8 @@ export const TaskRepository = {
       classId: taskItem.class_id,
       title: taskItem.title,
       description: taskItem.description,
+      classification: taskItem.classification,
+      gradeCriteriaId: taskItem.grade_criteria_id,
       createdAt: taskItem.created_at,
       updatedAt: taskItem.updated_at,
     }));
@@ -78,6 +86,8 @@ export const TaskRepository = {
       classId: taskItem.class_id,
       title: taskItem.title,
       description: taskItem.description,
+      classification: taskItem.classification,
+      gradeCriteriaId: taskItem.grade_criteria_id,
       createdAt: taskItem.created_at,
       updatedAt: taskItem.updated_at,
     };
@@ -88,12 +98,18 @@ export const TaskRepository = {
     data: {
       title?: string;
       description?: string;
+      classification?: GradeCriteriaClassification;
+      gradeCriteriaId?: string | null;
     },
   ): Promise<TaskEntity | null> => {
     const now = new Date().toISOString();
     const updated = await TaskModel.findOneAndUpdate(
       { id },
-      { ...data, updated_at: now },
+      {
+        ...data,
+        ...(data.gradeCriteriaId !== undefined ? { grade_criteria_id: data.gradeCriteriaId } : {}),
+        updated_at: now,
+      },
       { new: true },
     )
       .lean<TaskDocument | null>()
@@ -106,6 +122,8 @@ export const TaskRepository = {
       classId: updated.class_id,
       title: updated.title,
       description: updated.description,
+      classification: updated.classification,
+      gradeCriteriaId: updated.grade_criteria_id,
       createdAt: updated.created_at,
       updatedAt: updated.updated_at,
     };

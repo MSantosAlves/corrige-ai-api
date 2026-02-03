@@ -3,6 +3,11 @@ export { createClassController, listClassesController } from './class-controller
 export { extractTextController } from './ocr-controller';
 export { createTaskController, listTasksController } from './task-controller';
 export {
+  createGradeCriteriaController,
+  listGradeCriteriaController,
+  attachGradeCriteriaToTaskController,
+} from './grade-criteria-controller';
+export {
   saveTaskExtractionController,
   listTaskExtractionsController,
   getTaskExtractionController,

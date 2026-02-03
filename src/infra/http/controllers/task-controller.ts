@@ -27,6 +27,8 @@ export const createTaskController = async (req: Request, res: Response) => {
       class_id: created.classId,
       title: created.title,
       description: created.description,
+      classification: created.classification,
+      grade_criteria_id: created.gradeCriteriaId,
       created_at: created.createdAt,
       updated_at: created.updatedAt,
     });
@@ -56,6 +58,8 @@ export const listTasksController = async (req: Request, res: Response) => {
         class_id: task.classId,
         title: task.title,
         description: task.description,
+        classification: task.classification,
+        grade_criteria_id: task.gradeCriteriaId,
         created_at: task.createdAt,
         updated_at: task.updatedAt,
       })),
