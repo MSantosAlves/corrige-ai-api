@@ -6,6 +6,8 @@ import { connectMongo } from '@/infra/db/mongo';
 import { appRouter } from '@/infra/http/routes';
 import { requestLogger } from '@/infra/http/middlewares';
 import { logger } from '@/shared/logger';
+import { startBulkExtractionWorker } from '@/infra/queues/bulk-extraction-worker';
+import { startLlmAnalysisWorker } from '@/infra/queues/llm-analysis-worker';
 
 const app = express();
 const port = env.API_PORT;
@@ -32,6 +34,8 @@ app.listen(port, async () => {
   }
   try {
     await connectMongo();
+    startBulkExtractionWorker();
+    startLlmAnalysisWorker();
   } catch {
     logger.error('[MongoDB] Failed to connect. Check MONGODB_URI.');
   }

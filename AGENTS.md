@@ -16,6 +16,7 @@
   - Variable names should be in camelCase (ex.: user, data).
   - File and folder names should be in kebab-case (ex.: user-repository.ts, sign-in), except for the word `usecases`.
   - Database fields should be in snake_case (ex.: user_id, task_id).
+  - Status values should be uppercase (ex.: PENDING, TEXT_EXTRACTION).
 
 # API architecture
 

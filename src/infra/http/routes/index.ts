@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import multer from 'multer';
 
 import {
@@ -12,6 +12,9 @@ import {
   saveTaskExtractionController,
   listTaskExtractionsController,
   getTaskExtractionController,
+  createBulkTaskExtractionsController,
+  pollBulkTaskExtractionsController,
+  streamBulkTaskExtractionsController,
 } from '@/infra/http/controllers';
 import { authMiddleware } from '@/infra/http/middlewares';
 
@@ -33,6 +36,19 @@ router.get('/classes', listClassesController);
 router.post('/tasks', createTaskController);
 router.get('/tasks', listTasksController);
 router.post('/extractions', saveTaskExtractionController);
+router.post(
+  '/extractions/bulk',
+  upload.array('files'),
+  createBulkTaskExtractionsController as express.RequestHandler,
+);
+router.get(
+  '/extractions/bulk/:batchId',
+  pollBulkTaskExtractionsController as express.RequestHandler,
+);
+router.get(
+  '/extractions/bulk/:batchId/events',
+  streamBulkTaskExtractionsController as express.RequestHandler,
+);
 router.get('/extractions', listTaskExtractionsController);
 router.get('/extractions/:id', getTaskExtractionController);
 
