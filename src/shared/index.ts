@@ -12,9 +12,30 @@ import { startLlmAnalysisWorker } from '@/infra/queues/llm-analysis-worker';
 const app = express();
 const port = env.API_PORT;
 
+const parsedCorsOrigins = env.CORS_ORIGINS.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const corsAllowList = new Set<string>(parsedCorsOrigins);
+
+if (env.ENV === 'development') {
+  corsAllowList.add('http://localhost:3000');
+  corsAllowList.add('http://127.0.0.1:3000');
+}
+
 app.use(
   cors({
-    origin: [env.API_BASE_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (corsAllowList.size === 0) {
+        return callback(new Error('CORS not configured'), false);
+      }
+      if (corsAllowList.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
   }),
 );
 app.use(express.json());

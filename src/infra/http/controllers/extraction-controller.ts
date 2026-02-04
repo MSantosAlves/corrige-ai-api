@@ -9,6 +9,7 @@ import {
 } from '@/application/usecases/extractions';
 import { TaskExtractionBatchStatuses, TaskExtractionStatuses } from '@/domain/entities';
 import { TaskExtractionRepository } from '@/infra/db/repositories';
+import { env } from '@/infra/config/env';
 import { logger } from '@/shared/logger';
 
 type MulterRequestFiles = MulterFile[] | { [fieldname: string]: MulterFile[] } | undefined;
@@ -116,9 +117,10 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  const pollIntervalMs = 3000;
+  const pollIntervalMs = env.SSE_POLL_INTERVAL_MS;
 
   const sendEvent = (event: string, data: unknown) => {
     res.write(`event: ${event}\n`);
@@ -165,7 +167,7 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
   const keepAliveId = setInterval(() => {
     res.write('event: ping\n');
     res.write('data: {}\n\n');
-  }, 15000);
+  }, env.SSE_KEEPALIVE_INTERVAL_MS);
 
   const cleanup = () => {
     clearInterval(intervalId);
