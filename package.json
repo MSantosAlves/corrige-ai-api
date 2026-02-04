@@ -1,5 +1,5 @@
 {
-  "name": "corrige-ai",
+  "name": "revisa-facil",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/shared/index.ts",
@@ -16,6 +16,7 @@
     "dotenv": "latest",
     "dotenv-safe": "^9.1.0",
     "express": "latest",
+    "express-rate-limit": "^8.2.1",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
@@ -43,6 +44,7 @@
     "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "undici": "^7.20.0"
   }
 }

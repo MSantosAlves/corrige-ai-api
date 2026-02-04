@@ -1,11 +1,11 @@
 services:
   mongodb:
     image: mongo:7
-    container_name: corrige-ai-mongodb
+    container_name: revisa-facil-mongodb
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_DATABASE: corrige-ai
+      MONGO_INITDB_DATABASE: revisa-facil
     volumes:
       - mongo_data:/data/db
 

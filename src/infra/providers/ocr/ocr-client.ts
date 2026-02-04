@@ -107,6 +107,10 @@ export class OCRClient {
     this.baseUrl = config.baseUrl ?? env.OCR_BASE_URL;
     this.apiKey = config.apiKey ?? env.OCR_API_KEY;
     this.timeoutMs = config.timeoutMs ?? 60_000;
+
+    if (!this.apiKey) {
+      throw new Error('OCR_API_KEY is required to call OCR service.');
+    }
   }
 
   async extract(params: OCRExtractRequest): Promise<OCRExtractResponse> {
