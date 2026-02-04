@@ -19,21 +19,28 @@ import {
   listGradeCriteriaController,
   attachGradeCriteriaToTaskController,
 } from '@/infra/http/controllers';
-import { authMiddleware } from '@/infra/http/middlewares';
+import {
+  authMiddleware,
+  globalRateLimiter,
+  llmRateLimiter,
+  publicHourlyRateLimiter,
+  publicRateLimiter,
+} from '@/infra/http/middlewares';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.get('/', (_req, res) => {
-  res.send('Hello World');
+router.get('/health', publicRateLimiter, publicHourlyRateLimiter, (_req, res) => {
+  res.status(200).send('OK');
 });
 
-router.post('/auth/sign-in', signInController);
-router.post('/auth/sign-up', signUpController);
+router.post('/auth/sign-in', publicRateLimiter, publicHourlyRateLimiter, signInController);
+router.post('/auth/sign-up', publicRateLimiter, publicHourlyRateLimiter, signUpController);
 
 router.use(authMiddleware);
+router.use(globalRateLimiter);
 
-router.post('/extract-text', upload.single('file'), extractTextController);
+router.post('/extract-text', llmRateLimiter, upload.single('file'), extractTextController);
 router.post('/classes', createClassController);
 router.get('/classes', listClassesController);
 router.post('/criteria', createGradeCriteriaController);
@@ -44,6 +51,7 @@ router.post('/tasks/:id/criteria', attachGradeCriteriaToTaskController);
 router.post('/extractions', saveTaskExtractionController);
 router.post(
   '/extractions/bulk',
+  llmRateLimiter,
   upload.array('files'),
   createBulkTaskExtractionsController as express.RequestHandler,
 );
