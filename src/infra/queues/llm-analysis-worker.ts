@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 
 import { LlmClient } from '@/infra/providers/llm/llm-client';
+import { env } from '@/infra/config/env';
 import { redisConnection } from '@/infra/queues/redis';
 import { TaskExtractionStatuses } from '@/domain/entities';
 import { TaskExtractionRepository, TaskRepository, GradeCriteriaRepository } from '@/infra/db/repositories';
@@ -76,7 +77,7 @@ export const startLlmAnalysisWorker = (): void => {
       });
       logger.info({ extractionId, jobId: job.id }, 'LLM analysis worker finished');
     },
-    { connection: redisConnection },
+    { connection: redisConnection, concurrency: env.LLM_WORKER_CONCURRENCY },
   );
 
   worker.on('failed', (job, err) => {

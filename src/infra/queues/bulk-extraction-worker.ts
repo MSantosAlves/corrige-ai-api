@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 
 import { pollBulkTaskExtractionsUseCase } from '@/application/usecases/extractions';
 import { TaskExtractionBatchStatuses } from '@/domain/entities';
+import { env } from '@/infra/config/env';
 import { redisConnection } from '@/infra/queues/redis';
 import { enqueueBulkExtractionPoll } from '@/infra/queues/bulk-extraction-queue';
 import { logger } from '@/shared/logger';
@@ -31,7 +32,7 @@ export const startBulkExtractionWorker = (): void => {
         'Bulk extraction worker finished',
       );
     },
-    { connection: redisConnection },
+    { connection: redisConnection, concurrency: env.BULK_WORKER_CONCURRENCY },
   );
 
   worker.on('failed', (job, err) => {
