@@ -1,5 +1,4 @@
 import mongoose, { Schema } from 'mongoose';
-import { randomUUID } from 'crypto';
 
 import {
   TaskExtractionStatuses,
@@ -8,7 +7,7 @@ import {
 } from '@/domain/entities';
 
 type TaskExtractionDocument = mongoose.Document & {
-  id: string;
+  _id: mongoose.Types.ObjectId;
   task_id: string;
   batch_id?: string | null;
   status: TaskExtractionStatus;
@@ -22,7 +21,6 @@ type TaskExtractionDocument = mongoose.Document & {
 
 const TaskExtractionSchema = new Schema<TaskExtractionDocument>(
   {
-    id: { type: String, required: true, unique: true },
     task_id: { type: String, required: true, index: true },
     batch_id: { type: String, required: false, index: true },
     status: { type: String, required: true, index: true },
@@ -52,7 +50,6 @@ export const TaskExtractionRepository = {
   }): Promise<TaskExtractionEntity> => {
     const now = new Date().toISOString();
     const extraction = {
-      id: randomUUID(),
       task_id: data.taskId,
       batch_id: data.batchId ?? null,
       status: data.status ?? TaskExtractionStatuses.PENDING,
@@ -66,7 +63,7 @@ export const TaskExtractionRepository = {
     const created = await TaskExtractionModel.create(extraction);
     const saved = created.toObject() as TaskExtractionDocument;
     return {
-      id: saved.id,
+      id: saved._id.toString(),
       taskId: saved.task_id,
       batchId: saved.batch_id ?? null,
       status: saved.status,
@@ -85,7 +82,7 @@ export const TaskExtractionRepository = {
       .lean<TaskExtractionDocument[]>()
       .exec();
     return extractions.map((extraction) => ({
-      id: extraction.id,
+      id: extraction._id.toString(),
       taskId: extraction.task_id,
       batchId: extraction.batch_id ?? null,
       status: extraction.status,
@@ -104,7 +101,7 @@ export const TaskExtractionRepository = {
       .lean<TaskExtractionDocument[]>()
       .exec();
     return extractions.map((extraction) => ({
-      id: extraction.id,
+      id: extraction._id.toString(),
       taskId: extraction.task_id,
       batchId: extraction.batch_id ?? null,
       status: extraction.status,
@@ -118,14 +115,17 @@ export const TaskExtractionRepository = {
   },
 
   getById: async (id: string): Promise<TaskExtractionEntity | null> => {
-    const extraction = await TaskExtractionModel.findOne({ id })
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
+    const extraction = await TaskExtractionModel.findById(id)
       .lean<TaskExtractionDocument | null>()
       .exec();
     if (!extraction) {
       return null;
     }
     return {
-      id: extraction.id,
+      id: extraction._id.toString(),
       taskId: extraction.task_id,
       batchId: extraction.batch_id ?? null,
       status: extraction.status,
@@ -167,8 +167,8 @@ export const TaskExtractionRepository = {
       data.analysisResult !== undefined ? data.analysisResult : current.analysis_result;
 
     const now = new Date().toISOString();
-    const updated = await TaskExtractionModel.findOneAndUpdate(
-      { id: current.id },
+    const updated = await TaskExtractionModel.findByIdAndUpdate(
+      current._id,
       {
         status: nextStatus,
         ocr_extraction_result: nextOcrResult,
@@ -183,7 +183,7 @@ export const TaskExtractionRepository = {
       return null;
     }
     return {
-      id: updated.id,
+      id: updated._id.toString(),
       taskId: updated.task_id,
       batchId: updated.batch_id ?? null,
       status: updated.status,
@@ -203,9 +203,12 @@ export const TaskExtractionRepository = {
       analysisResult?: string | null;
     },
   ): Promise<TaskExtractionEntity | null> => {
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const now = new Date().toISOString();
-    const updated = await TaskExtractionModel.findOneAndUpdate(
-      { id },
+    const updated = await TaskExtractionModel.findByIdAndUpdate(
+      id,
       {
         ...(typeof data.status === 'string' ? { status: data.status } : {}),
         ...(data.analysisResult !== undefined ? { analysis_result: data.analysisResult } : {}),
@@ -219,7 +222,7 @@ export const TaskExtractionRepository = {
       return null;
     }
     return {
-      id: updated.id,
+      id: updated._id.toString(),
       taskId: updated.task_id,
       batchId: updated.batch_id ?? null,
       status: updated.status,

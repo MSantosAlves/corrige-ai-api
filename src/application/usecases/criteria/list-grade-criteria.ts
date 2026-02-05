@@ -6,10 +6,11 @@ import {
   type GradeCriteriaEntity,
 } from '@/domain/entities';
 import { GradeCriteriaRepository } from '@/infra/db/repositories';
+import { objectIdSchema } from '@/shared/validation';
 
 const listCriteriaSchema = z.object({
   classification: z.nativeEnum(GradeCriteriaClassifications).optional(),
-  userId: z.string().uuid().optional(),
+  userId: objectIdSchema.optional(),
   includePublic: z.boolean().optional(),
 });
 

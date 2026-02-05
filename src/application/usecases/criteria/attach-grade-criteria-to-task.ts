@@ -2,11 +2,12 @@ import { z } from 'zod';
 
 import { GradeCriteriaRepository, TaskRepository } from '@/infra/db/repositories';
 import { type GradeCriteriaClassification, type TaskEntity } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
 const attachCriteriaSchema = z.object({
-  taskId: z.string().uuid(),
-  gradeCriteriaId: z.string().uuid(),
-  userId: z.string().uuid(),
+  taskId: objectIdSchema,
+  gradeCriteriaId: objectIdSchema,
+  userId: objectIdSchema,
 });
 
 export const attachGradeCriteriaToTaskUseCase = async (data: {

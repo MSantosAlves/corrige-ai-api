@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { TaskRepository } from '@/infra/db/repositories';
 import { type TaskEntity } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
 const createTaskSchema = z.object({
-  classId: z.string().uuid(),
+  classId: objectIdSchema,
   title: z.string().min(1).max(255),
   description: z.string().max(1000).optional(),
 });

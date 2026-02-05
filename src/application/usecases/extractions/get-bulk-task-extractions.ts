@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import {
   TaskExtractionBatchStatuses,
@@ -7,8 +5,9 @@ import {
   type TaskExtractionBatchStatus,
   type TaskExtractionEntity,
 } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
-const getSchema = z.string().uuid();
+const getSchema = objectIdSchema;
 
 export const getBulkTaskExtractionsUseCase = async (
   batchId: string,

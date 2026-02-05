@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { TaskExtractionRepository } from '@/infra/db/repositories';
 import { type TaskExtractionEntity } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
 const saveTaskExtractionSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: objectIdSchema,
   ocrExtractionResult: z.record(z.string(), z.unknown()),
   analysisResult: z.string(),
   filename: z.string().min(1),

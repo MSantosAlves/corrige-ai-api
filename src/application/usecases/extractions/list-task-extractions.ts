@@ -1,9 +1,8 @@
-import { z } from 'zod';
-
 import { TaskExtractionRepository } from '@/infra/db/repositories';
 import { type TaskExtractionEntity } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
-const listTaskExtractionsSchema = z.string().uuid();
+const listTaskExtractionsSchema = objectIdSchema;
 
 export const listTaskExtractionsUseCase = async (
   taskId: string,

@@ -1,10 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
-import { randomUUID } from 'crypto';
 
 import { type GradeCriteriaClassification, type TaskEntity } from '@/domain/entities';
 
 type TaskDocument = mongoose.Document & {
-  id: string;
+  _id: mongoose.Types.ObjectId;
   class_id: string;
   title: string;
   description?: string;
@@ -16,7 +15,6 @@ type TaskDocument = mongoose.Document & {
 
 const taskSchema = new Schema<TaskDocument>(
   {
-    id: { type: String, required: true, unique: true },
     class_id: { type: String, required: true, index: true },
     title: { type: String, required: true },
     description: { type: String, default: '' },
@@ -38,7 +36,6 @@ export const TaskRepository = {
   }): Promise<TaskEntity> => {
     const now = new Date().toISOString();
     const task = {
-      id: randomUUID(),
       class_id: data.classId,
       title: data.title,
       description: data.description || '',
@@ -48,7 +45,7 @@ export const TaskRepository = {
     const created = await TaskModel.create(task);
     const saved = created.toObject() as TaskDocument;
     return {
-      id: saved.id,
+      id: saved._id.toString(),
       classId: saved.class_id,
       title: saved.title,
       description: saved.description,
@@ -65,7 +62,7 @@ export const TaskRepository = {
       .lean<TaskDocument[]>()
       .exec();
     return tasks.map((taskItem) => ({
-      id: taskItem.id,
+      id: taskItem._id.toString(),
       classId: taskItem.class_id,
       title: taskItem.title,
       description: taskItem.description,
@@ -77,12 +74,15 @@ export const TaskRepository = {
   },
 
   getById: async (id: string): Promise<TaskEntity | null> => {
-    const taskItem = await TaskModel.findOne({ id }).lean<TaskDocument | null>().exec();
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
+    const taskItem = await TaskModel.findById(id).lean<TaskDocument | null>().exec();
     if (!taskItem) {
       return null;
     }
     return {
-      id: taskItem.id,
+      id: taskItem._id.toString(),
       classId: taskItem.class_id,
       title: taskItem.title,
       description: taskItem.description,
@@ -102,9 +102,12 @@ export const TaskRepository = {
       gradeCriteriaId?: string | null;
     },
   ): Promise<TaskEntity | null> => {
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const now = new Date().toISOString();
-    const updated = await TaskModel.findOneAndUpdate(
-      { id },
+    const updated = await TaskModel.findByIdAndUpdate(
+      id,
       {
         ...data,
         ...(data.gradeCriteriaId !== undefined ? { grade_criteria_id: data.gradeCriteriaId } : {}),
@@ -118,7 +121,7 @@ export const TaskRepository = {
       return null;
     }
     return {
-      id: updated.id,
+      id: updated._id.toString(),
       classId: updated.class_id,
       title: updated.title,
       description: updated.description,
@@ -130,7 +133,10 @@ export const TaskRepository = {
   },
 
   delete: async (id: string): Promise<boolean> => {
-    const result = await TaskModel.deleteOne({ id });
+    if (!mongoose.isValidObjectId(id)) {
+      return false;
+    }
+    const result = await TaskModel.deleteOne({ _id: id });
     return result.deletedCount > 0;
   },
 };

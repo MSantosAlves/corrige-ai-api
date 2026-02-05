@@ -7,6 +7,7 @@ import {
   type GradeCriteriaEntity,
 } from '@/domain/entities';
 import { GradeCriteriaRepository } from '@/infra/db/repositories';
+import { objectIdSchema } from '@/shared/validation';
 
 const gradeCriteriaItemSchema = z.object({
   label: z.string().min(1).max(200),
@@ -15,7 +16,7 @@ const gradeCriteriaItemSchema = z.object({
 });
 
 const createCriteriaSchema = z.object({
-  userId: z.string().uuid(),
+  userId: objectIdSchema,
   name: z.string().min(1).max(255),
   description: z.string().max(1000).optional(),
   classification: z.nativeEnum(GradeCriteriaClassifications),

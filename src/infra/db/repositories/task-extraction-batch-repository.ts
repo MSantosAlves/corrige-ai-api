@@ -1,5 +1,4 @@
 import mongoose, { Schema } from 'mongoose';
-import { randomUUID } from 'crypto';
 
 import {
   TaskExtractionBatchStatuses,
@@ -8,7 +7,7 @@ import {
 } from '@/domain/entities';
 
 type TaskExtractionBatchDocument = mongoose.Document & {
-  id: string;
+  _id: mongoose.Types.ObjectId;
   task_id: string;
   ocr_job_id: string;
   status: TaskExtractionBatchStatus;
@@ -18,7 +17,6 @@ type TaskExtractionBatchDocument = mongoose.Document & {
 
 const TaskExtractionBatchSchema = new Schema<TaskExtractionBatchDocument>(
   {
-    id: { type: String, required: true, unique: true },
     task_id: { type: String, required: true, index: true },
     ocr_job_id: { type: String, required: true, index: true },
     status: { type: String, required: true, index: true },
@@ -40,7 +38,6 @@ export const TaskExtractionBatchRepository = {
   }): Promise<TaskExtractionBatchEntity> => {
     const now = new Date().toISOString();
     const batch = {
-      id: randomUUID(),
       task_id: data.taskId,
       ocr_job_id: data.ocrJobId,
       status: data.status ?? TaskExtractionBatchStatuses.PENDING,
@@ -50,7 +47,7 @@ export const TaskExtractionBatchRepository = {
     const created = await TaskExtractionBatchModel.create(batch);
     const saved = created.toObject() as TaskExtractionBatchDocument;
     return {
-      id: saved.id,
+      id: saved._id.toString(),
       taskId: saved.task_id,
       ocrJobId: saved.ocr_job_id,
       status: saved.status,
@@ -60,14 +57,17 @@ export const TaskExtractionBatchRepository = {
   },
 
   getById: async (id: string): Promise<TaskExtractionBatchEntity | null> => {
-    const batch = await TaskExtractionBatchModel.findOne({ id })
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
+    const batch = await TaskExtractionBatchModel.findById(id)
       .lean<TaskExtractionBatchDocument | null>()
       .exec();
     if (!batch) {
       return null;
     }
     return {
-      id: batch.id,
+      id: batch._id.toString(),
       taskId: batch.task_id,
       ocrJobId: batch.ocr_job_id,
       status: batch.status,
@@ -80,9 +80,12 @@ export const TaskExtractionBatchRepository = {
     id: string,
     status: TaskExtractionBatchStatus,
   ): Promise<TaskExtractionBatchEntity | null> => {
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const now = new Date().toISOString();
-    const updated = await TaskExtractionBatchModel.findOneAndUpdate(
-      { id },
+    const updated = await TaskExtractionBatchModel.findByIdAndUpdate(
+      id,
       { status, updated_at: now },
       { new: true },
     )
@@ -92,7 +95,7 @@ export const TaskExtractionBatchRepository = {
       return null;
     }
     return {
-      id: updated.id,
+      id: updated._id.toString(),
       taskId: updated.task_id,
       ocrJobId: updated.ocr_job_id,
       status: updated.status,
@@ -111,7 +114,7 @@ export const TaskExtractionBatchRepository = {
       .lean<TaskExtractionBatchDocument[]>()
       .exec();
     return batches.map((batch) => ({
-      id: batch.id,
+      id: batch._id.toString(),
       taskId: batch.task_id,
       ocrJobId: batch.ocr_job_id,
       status: batch.status,

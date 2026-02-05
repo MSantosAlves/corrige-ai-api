@@ -13,11 +13,12 @@ import {
   type TaskExtractionBatchStatus,
   type TaskExtractionEntity,
 } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
 
 const bulkRequestSchema = z.object({
-  taskId: z.uuid(),
+  taskId: objectIdSchema,
   documentType: z.enum(['pdf_native', 'printed', 'handwritten', 'auto']).optional(),
   language: z.string().optional(),
   preserveLayout: z.boolean().optional(),

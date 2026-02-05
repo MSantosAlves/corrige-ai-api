@@ -6,14 +6,15 @@ import { saveTaskExtractionUseCase } from '@/application/usecases/extractions';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { GradeCriteriaRepository, TaskRepository } from '@/infra/db/repositories';
 import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
+import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
 const llmClientInstance = new LlmClient();
 
 const extractBodySchema = z.object({
-  user_id: z.string().uuid().optional(),
-  class_id: z.string().uuid().optional(),
-  task_id: z.string().uuid().optional(),
+  user_id: objectIdSchema.optional(),
+  class_id: objectIdSchema.optional(),
+  task_id: objectIdSchema.optional(),
   document_type: z.enum(['pdf_native', 'printed', 'handwritten', 'auto']).optional(),
   language: z.string().optional(),
   preserve_layout: z.boolean().optional(),

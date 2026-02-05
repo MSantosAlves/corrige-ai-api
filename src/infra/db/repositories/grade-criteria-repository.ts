@@ -1,5 +1,4 @@
 import mongoose, { Schema } from 'mongoose';
-import { randomUUID } from 'crypto';
 
 import {
   type GradeCriteriaClassification,
@@ -8,7 +7,7 @@ import {
 } from '@/domain/entities';
 
 type GradeCriteriaDocument = mongoose.Document & {
-  id: string;
+  _id: mongoose.Types.ObjectId;
   user_id: string;
   name: string;
   description?: string;
@@ -32,7 +31,6 @@ const gradeCriteriaItemSchema = new Schema<GradeCriteriaItem>(
 
 const gradeCriteriaSchema = new Schema<GradeCriteriaDocument>(
   {
-    id: { type: String, required: true, unique: true },
     user_id: { type: String, required: true, index: true },
     name: { type: String, required: true },
     description: { type: String, required: false },
@@ -64,7 +62,6 @@ export const GradeCriteriaRepository = {
   }): Promise<GradeCriteriaEntity> => {
     const now = new Date().toISOString();
     const criteria = {
-      id: randomUUID(),
       user_id: data.userId,
       name: data.name,
       description: data.description,
@@ -79,7 +76,7 @@ export const GradeCriteriaRepository = {
     const created = await GradeCriteriaModel.create(criteria);
     const saved = created.toObject() as GradeCriteriaDocument;
     return {
-      id: saved.id,
+      id: saved._id.toString(),
       userId: saved.user_id,
       name: saved.name,
       description: saved.description,
@@ -116,7 +113,7 @@ export const GradeCriteriaRepository = {
       .lean<GradeCriteriaDocument[]>()
       .exec();
     return items.map((criteria) => ({
-      id: criteria.id,
+      id: criteria._id.toString(),
       userId: criteria.user_id,
       name: criteria.name,
       description: criteria.description,
@@ -131,14 +128,17 @@ export const GradeCriteriaRepository = {
   },
 
   getById: async (id: string): Promise<GradeCriteriaEntity | null> => {
-    const criteria = await GradeCriteriaModel.findOne({ id })
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
+    const criteria = await GradeCriteriaModel.findById(id)
       .lean<GradeCriteriaDocument | null>()
       .exec();
     if (!criteria) {
       return null;
     }
     return {
-      id: criteria.id,
+      id: criteria._id.toString(),
       userId: criteria.user_id,
       name: criteria.name,
       description: criteria.description,

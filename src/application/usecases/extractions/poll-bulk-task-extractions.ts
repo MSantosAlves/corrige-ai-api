@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import { OCRClient, type OCRAsyncJobStatus } from '@/infra/providers/ocr/ocr-client';
 import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import {
@@ -9,10 +7,11 @@ import {
   type TaskExtractionEntity,
 } from '@/domain/entities';
 import { enqueueLlmAnalysis } from '@/infra/queues/llm-analysis-queue';
+import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
 
-const pollSchema = z.string().uuid();
+const pollSchema = objectIdSchema;
 
 const mapBatchStatus = (status: OCRAsyncJobStatus): TaskExtractionBatchStatus => {
   if (status === 'FAILED' || status === 'CANCELED') {

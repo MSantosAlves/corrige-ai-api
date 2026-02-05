@@ -2,10 +2,11 @@ import { z } from 'zod';
 
 import { ClassRepository } from '@/infra/db/repositories';
 import { type ClassEntity } from '@/domain/entities';
+import { objectIdSchema } from '@/shared/validation';
 
 const createClassSchema = z.object({
   name: z.string().min(1).max(255),
-  userId: z.string().uuid(),
+  userId: objectIdSchema,
 });
 
 export const createClassUseCase = async (data: {
