@@ -1,7 +1,8 @@
 import * as dotenvSafe from 'dotenv-safe';
 import { z } from 'zod';
 
-const isProduction = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
+export const isProduction =
+  process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
 
 if (!isProduction) {
   dotenvSafe.config({ example: '.env.example', allowEmptyValues: true });
@@ -19,6 +20,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().optional().default('dev-secret'),
   OCR_BASE_URL: z.string().optional().default('http://127.0.0.1:8000'),
   OCR_API_KEY: z.string().min(1),
+  SIGN_UP_KEY: z.string().optional().default(''),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().optional().default(60_000),
   RATE_LIMIT_PUBLIC_MAX: z.coerce.number().optional().default(10),
   RATE_LIMIT_PUBLIC_HOURLY_MAX: z.coerce.number().optional().default(200),
@@ -46,6 +48,7 @@ export const env = envSchema.parse({
   JWT_SECRET: process.env.JWT_SECRET,
   OCR_BASE_URL: process.env.OCR_BASE_URL,
   OCR_API_KEY: process.env.OCR_API_KEY,
+  SIGN_UP_KEY: process.env.SIGN_UP_KEY,
   RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_PUBLIC_MAX: process.env.RATE_LIMIT_PUBLIC_MAX,
   RATE_LIMIT_PUBLIC_HOURLY_MAX: process.env.RATE_LIMIT_PUBLIC_HOURLY_MAX,
