@@ -34,6 +34,10 @@ router.get('/health', publicRateLimiter, publicHourlyRateLimiter, (_req, res) =>
   res.status(200).send('OK');
 });
 
+router.get('/', publicRateLimiter, publicHourlyRateLimiter, (_req, res) => {
+  res.status(200).send('OK');
+});
+
 router.post('/auth/sign-in', publicRateLimiter, publicHourlyRateLimiter, signInController);
 router.post('/auth/sign-up', publicRateLimiter, publicHourlyRateLimiter, signUpController);
 
