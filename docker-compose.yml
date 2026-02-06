@@ -1,0 +1,39 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE:-msantosalves404/revisa-facil:backend-latest}
+    env_file:
+      - ${BACKEND_ENV_FILE:-./deploy/env/backend.production.env}
+    depends_on:
+      - redis
+    ports:
+      - "127.0.0.1:3001:3001"
+    restart: unless-stopped
+
+  ocr-api:
+    image: ${OCR_IMAGE:-msantosalves404/revisa-facil:ocr-latest}
+    env_file:
+      - ${OCR_ENV_FILE:-./deploy/env/ocr.production.env}
+    depends_on:
+      - redis
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  ocr-worker:
+    image: ${OCR_IMAGE:-msantosalves404/revisa-facil:ocr-latest}
+    command: ["celery", "-A", "app.core.celery_app", "worker", "-l", "info"]
+    env_file:
+      - ${OCR_ENV_FILE:-./deploy/env/ocr.production.env}
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
