@@ -84,11 +84,12 @@ export class LlmClient {
         },
       ],
     });
-    const responseText = data.content?.map((item) => item.text).join('\n').trim() || '';
-    logger.info(
-      { prompt, response: responseText },
-      'LLM analysis with custom prompt finished',
-    );
+    const responseText =
+      data.content
+        ?.map((item) => item.text)
+        .join('\n')
+        .trim() || '';
+    logger.info({ prompt, response: responseText }, 'LLM analysis with custom prompt finished');
     return responseText;
   }
 

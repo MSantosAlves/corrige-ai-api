@@ -1,7 +1,11 @@
 import * as dotenvSafe from 'dotenv-safe';
 import { z } from 'zod';
 
-dotenvSafe.config({ example: '.env.example', allowEmptyValues: true });
+const isProduction = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
+
+if (!isProduction) {
+  dotenvSafe.config({ example: '.env.example', allowEmptyValues: true });
+}
 
 const envSchema = z.object({
   API_BASE_URL: z.string().min(1),

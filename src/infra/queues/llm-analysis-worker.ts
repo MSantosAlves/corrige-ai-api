@@ -4,7 +4,11 @@ import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { env } from '@/infra/config/env';
 import { redisConnection } from '@/infra/queues/redis';
 import { TaskExtractionStatuses } from '@/domain/entities';
-import { TaskExtractionRepository, TaskRepository, GradeCriteriaRepository } from '@/infra/db/repositories';
+import {
+  TaskExtractionRepository,
+  TaskRepository,
+  GradeCriteriaRepository,
+} from '@/infra/db/repositories';
 import { logger } from '@/shared/logger';
 import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
 
@@ -46,7 +50,7 @@ export const startLlmAnalysisWorker = (): void => {
         );
         return;
       }
-      
+
       let analysis = '';
       try {
         const task = await TaskRepository.getById(extraction.taskId);

@@ -48,7 +48,8 @@ export const extractTextUseCase = async (req: Request) => {
   });
 
   let analysis = '';
-  const extractedText = ocrResponse.text && ocrResponse.text.trim().length > 0 ? ocrResponse.text : '';
+  const extractedText =
+    ocrResponse.text && ocrResponse.text.trim().length > 0 ? ocrResponse.text : '';
   if (extractedText) {
     try {
       if (taskId) {
