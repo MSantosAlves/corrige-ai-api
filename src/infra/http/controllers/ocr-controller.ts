@@ -8,6 +8,9 @@ export const extractTextController = async (req: Request, res: Response) => {
     return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro inesperado.';
+    if (message === 'Limite de uso do plano atingido.') {
+      return res.status(400).json({ error: message });
+    }
     return res.status(500).json({ error: message });
   }
 };

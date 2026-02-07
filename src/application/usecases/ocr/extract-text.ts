@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { OCRClient, type OCRDocumentType } from '@/infra/providers/ocr/ocr-client';
 import { saveTaskExtractionUseCase } from '@/application/usecases/extractions';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
-import { GradeCriteriaRepository, TaskRepository } from '@/infra/db/repositories';
+import { GradeCriteriaRepository, TaskRepository, UserRepository } from '@/infra/db/repositories';
 import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
 import { objectIdSchema } from '@/shared/validation';
 
@@ -27,6 +27,11 @@ const extractFileSchema = z.object({
 });
 
 export const extractTextUseCase = async (req: Request) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new Error('Token de autenticação ausente.');
+  }
+
   const body = extractBodySchema.parse(req.body ?? {});
   const file = extractFileSchema.parse(req.file);
 
@@ -37,6 +42,14 @@ export const extractTextUseCase = async (req: Request) => {
     preserve_layout: preserveLayout,
     quality_threshold: qualityThreshold,
   } = body;
+
+  const user = await UserRepository.findById(userId);
+  if (!user) {
+    throw new Error('Usuário não encontrado.');
+  }
+  if (user.planUsage >= user.planQuota) {
+    throw new Error('Limite de uso do plano atingido.');
+  }
 
   const ocrResponse = await ocrClientInstance.extract({
     fileName: file.originalname,
@@ -87,8 +100,12 @@ export const extractTextUseCase = async (req: Request) => {
     }
   }
 
+  await UserRepository.incrementPlanUsage({ id: userId, amount: 1 });
+
   return {
     ...ocrResponse,
     analysis,
+    planUsage: user.planUsage,
+    planQuota: user.planQuota,
   };
 };

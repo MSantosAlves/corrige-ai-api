@@ -19,6 +19,7 @@ type MulterRequest = Request & {
 };
 
 export const createBulkTaskExtractionsController = async (req: MulterRequest, res: Response) => {
+  const userId = req.user?.id ?? '';
   const taskId = typeof req.body?.task_id === 'string' ? req.body.task_id : '';
   const files: MulterFile[] = Array.isArray(req.files)
     ? req.files
@@ -26,12 +27,13 @@ export const createBulkTaskExtractionsController = async (req: MulterRequest, re
       ? Object.values(req.files as Record<string, MulterFile[]>).flat()
       : [];
 
-  if (!taskId || files.length === 0) {
+  if (!userId || !taskId || files.length === 0) {
     return res.status(400).json({ error: 'task_id e files são obrigatórios.' });
   }
 
   try {
     const result = await createBulkTaskExtractionsUseCase({
+      userId,
       taskId,
       files: files.map((file) => ({
         originalname: file.originalname,
@@ -68,9 +70,14 @@ export const createBulkTaskExtractionsController = async (req: MulterRequest, re
         created_at: item.createdAt,
         updated_at: item.updatedAt,
       })),
+      planUsage: result.planUsage,
+      planQuota: result.planQuota,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao criar extrações em lote.';
+    if (message === 'Limite de uso do plano atingido.') {
+      return res.status(400).json({ error: message });
+    }
     return res.status(400).json({ error: message });
   }
 };
@@ -136,13 +143,17 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
           item.status === TaskExtractionStatuses.DONE ||
           item.status === TaskExtractionStatuses.ERROR,
       ).length;
+      const totalExtractions = result.items.filter((item) => item.ocrExtractionResult).length;
+      const totalGraded = result.items.filter((item) => item.analysisResult).length;
       const payload = {
         batch_id: result.batchId,
         job_id: result.ocrJobId,
         status: result.status,
         progress: {
-          completed: completedCount,
           total: totalCount,
+          completed: completedCount,
+          extracted: totalExtractions,
+          graded: totalGraded,
         },
       };
       sendEvent('status', payload);
