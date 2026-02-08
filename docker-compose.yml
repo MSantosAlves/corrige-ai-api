@@ -22,6 +22,8 @@ services:
       - ${OCR_ENV_FILE:-./deploy/env/ocr.production.env}
     depends_on:
       - redis
+    volumes:
+      - ocr_tmp:/tmp/ocr-service
     ports:
       - "127.0.0.1:8000:8000"
     restart: unless-stopped
@@ -33,7 +35,10 @@ services:
       - ${OCR_ENV_FILE:-./deploy/env/ocr.production.env}
     depends_on:
       - redis
+    volumes:
+      - ocr_tmp:/tmp/ocr-service
     restart: unless-stopped
 
 volumes:
   redis_data:
+  ocr_tmp:

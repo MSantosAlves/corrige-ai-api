@@ -87,7 +87,10 @@ export const createBulkTaskExtractionsUseCase = async (data: {
   }
   if (user.planUsage + files.length > user.planQuota) {
     const remainingQuota = user.planQuota - user.planUsage;
-    const errorMessage = remainingQuota > 0 ? `Você possui apenas ${remainingQuota} correções restantes. Por favor, diminua o número de arquivos ou faça upgrade do seu plano para continuar.` : 'Você atingiu o limite mensal de uso do seu plano. Por favor, faça um upgrade para continuar.';
+    const errorMessage =
+      remainingQuota > 0
+        ? `Você possui apenas ${remainingQuota} correções restantes. Por favor, diminua o número de arquivos ou faça upgrade do seu plano para continuar.`
+        : 'Você atingiu o limite mensal de uso do seu plano. Por favor, faça um upgrade para continuar.';
     throw new Error(errorMessage);
   }
 
