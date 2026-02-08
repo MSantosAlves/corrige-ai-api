@@ -85,3 +85,102 @@ src
 - [ ] Teacher review and adjustment before finalizing grades/feedback.
 - [ ] Per-paragraph feedback with actionable suggestions.
 - [ ] Real-time writing analysis and AI-generated summaries.
+
+## Auth + Payments milestone
+
+Goal: ESM migration, Better Auth with Google + email verification, and Stripe subscription plumbing with an admin surface in the Next.js app.
+
+- [x] ESM migration (package.json `type: module`, tsconfig `ESNext` + `Bundler`, import path fixes, `__dirname` replacement, build validation)
+- [ ] Better Auth server setup (instance, Mongo adapter, mount `/api/auth/*` before `express.json()`)
+- [ ] Session/cookie config for `.revisafacil.com` and CORS credentials for `app.revisafacil.com`
+- [ ] Google OAuth provider (client id/secret, callback URL, consent screen)
+- [ ] Email verification (send, verify, resend) using Resend
+- [ ] Frontend Next.js integration (sign-in, callback, verify-email, protected routes)
+- [ ] Stripe core setup (SDK, checkout session, customer portal)
+- [ ] Stripe webhooks (signature verification, subscription lifecycle updates)
+- [ ] Data model updates (user Stripe fields, plans collection, audit logs)
+- [ ] Admin panel (Next.js `/admin`, role checks, admin APIs, audit logging)
+
+### Plan Details
+
+**Summary**
+- Convert API to ESM (Better Auth requires ESM).
+- Integrate Better Auth in API with Mongo adapter and cookie sessions across subdomains.
+- Add Google OAuth + email verification via Resend.
+- Add Stripe subscription flows and webhooks.
+- Add admin panel in the same Next.js app with role-based access and audit logs.
+
+**Current state**
+- API: Express + TypeScript + Mongoose.
+- Build: CommonJS via `tsc` + `tsc-alias`.
+- No auth provider in codebase.
+- Env config in `src/infra/config/env.ts`.
+- CORS allowlist in `src/shared/index.ts`.
+
+**Target architecture**
+
+1) **ESM migration (API)**
+- `package.json` add `type: module`.
+- `tsconfig.json` use `module: ESNext` and `moduleResolution: Bundler`.
+- Ensure runtime imports include explicit `.js` extensions after build.
+- Replace `__dirname`/`__filename` usage with `import.meta.url` helpers.
+- Validate `node dist/shared/index.js` works.
+
+2) **Better Auth integration (API)**
+- Create Better Auth instance and mount `app.all("/api/auth/*", toNodeHandler(auth))` before `express.json()`.
+- Use Mongo adapter with `mongoose.connection.getClient()`.
+- Cookie sessions on `.revisafacil.com` with secure flags in production.
+- Enable CORS with credentials for `app.revisafacil.com`.
+
+3) **Google OAuth**
+- Configure Google provider with `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+- OAuth callback: `https://api-prod.revisafacil.com/api/auth/callback/google`.
+
+4) **Email verification**
+- Use Better Auth email verification hooks.
+- Implement send/verify/resend using Resend.
+- Verification links open Next.js route then call API verification endpoint.
+
+5) **Frontend Next.js integration**
+- Use Better Auth client or direct API calls.
+- Add `/auth/callback` and `/auth/verify-email` routes.
+- Protect authenticated and admin-only routes.
+
+6) **Stripe (subscription tiers)**
+- `POST /billing/checkout` for Checkout session.
+- `POST /billing/portal` for Customer Portal session.
+- `POST /webhooks/stripe` for subscription lifecycle changes.
+
+7) **Data model**
+- `users` fields: `stripe_customer_id`, `subscription_status`, `plan_id`, `current_period_end`.
+- `plans` collection: `plan_id`, `stripe_price_id`, `monthly_quota`, `features`.
+- `audit_logs` collection: `actor_user_id`, `action`, `target_id`, `metadata`, `created_at`.
+- Optional `usage` collection for future hybrid billing.
+
+8) **Admin panel**
+- `/admin` in Next.js app.
+- Role-based access: `ADMIN`, `SUPPORT`, `TEACHER`.
+- Admin-only API endpoints and audit logging for changes.
+
+**External configuration (env)**
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_*` (plan pricing identifiers)
+
+**Tests and validation**
+- Google OAuth sign-in sets cookies correctly.
+- Email verification updates user status.
+- Stripe webhooks verify signature and update subscription status.
+- Admin routes blocked for non-admin roles.
+
+**Assumptions**
+- Billing model: subscription tiers.
+- Session strategy: cookie sessions across subdomains.
+- Email provider: Resend.
+- Frontend on `app.revisafacil.com`, API on `api-prod.revisafacil.com`.

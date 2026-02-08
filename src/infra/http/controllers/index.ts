@@ -1,12 +1,12 @@
-export { signInController, signUpController } from './auth-controller';
-export { createClassController, listClassesController } from './class-controller';
-export { extractTextController } from './ocr-controller';
-export { createTaskController, listTasksController } from './task-controller';
+export { signInController, signUpController } from './auth-controller.js';
+export { createClassController, listClassesController } from './class-controller.js';
+export { extractTextController } from './ocr-controller.js';
+export { createTaskController, listTasksController } from './task-controller.js';
 export {
   createGradeCriteriaController,
   listGradeCriteriaController,
   attachGradeCriteriaToTaskController,
-} from './grade-criteria-controller';
+} from './grade-criteria-controller.js';
 export {
   saveTaskExtractionController,
   listTaskExtractionsController,
@@ -14,4 +14,4 @@ export {
   createBulkTaskExtractionsController,
   pollBulkTaskExtractionsController,
   streamBulkTaskExtractionsController,
-} from './extraction-controller';
+} from './extraction-controller.js';

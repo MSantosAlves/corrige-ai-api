@@ -1,3 +1,3 @@
-export { createGradeCriteriaUseCase } from './create-grade-criteria';
-export { listGradeCriteriaUseCase } from './list-grade-criteria';
-export { attachGradeCriteriaToTaskUseCase } from './attach-grade-criteria-to-task';
+export { createGradeCriteriaUseCase } from './create-grade-criteria.js';
+export { listGradeCriteriaUseCase } from './list-grade-criteria.js';
+export { attachGradeCriteriaToTaskUseCase } from './attach-grade-criteria-to-task.js';

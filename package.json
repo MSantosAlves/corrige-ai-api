@@ -1,9 +1,10 @@
 {
   "name": "revisa-facil",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/shared/index.ts",
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias -f -fe .js",
     "start": "node dist/shared/index.js",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",

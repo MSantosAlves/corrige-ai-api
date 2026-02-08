@@ -1,1 +1,1 @@
-export { extractTextUseCase } from './extract-text';
+export { extractTextUseCase } from './extract-text.js';

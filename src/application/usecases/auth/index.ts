@@ -1,2 +1,2 @@
-export { signInUseCase } from './sign-in';
-export { signUpUseCase } from './sign-up';
+export { signInUseCase } from './sign-in.js';
+export { signUpUseCase } from './sign-up.js';
