@@ -56,6 +56,9 @@ export const signUpUseCase = async (
       id: user.id,
       name: user.name,
       email: user.email,
+      planType: user.planType,
+      planQuota: user.planQuota,
+      planUsage: user.planUsage,
     },
   };
 };

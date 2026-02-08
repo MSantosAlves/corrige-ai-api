@@ -5,7 +5,11 @@ import {
   type OCRAsyncJobStatus,
   type OCRDocumentType,
 } from '@/infra/providers/ocr/ocr-client';
-import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
+import {
+  TaskExtractionBatchRepository,
+  TaskExtractionRepository,
+  UserRepository,
+} from '@/infra/db/repositories';
 import { enqueueBulkExtractionPoll } from '@/infra/queues/bulk-extraction-queue';
 import {
   TaskExtractionBatchStatuses,
@@ -58,6 +62,7 @@ const mapExtractionStatus = (
 };
 
 export const createBulkTaskExtractionsUseCase = async (data: {
+  userId: string;
   taskId: string;
   files: Array<{ originalname: string; buffer: Buffer }>;
   documentType?: OCRDocumentType;
@@ -69,9 +74,22 @@ export const createBulkTaskExtractionsUseCase = async (data: {
   ocrJobId: string;
   status: TaskExtractionBatchStatus;
   items: TaskExtractionEntity[];
+  planUsage: number;
+  planQuota: number;
 }> => {
+  const userId = data.userId;
   const input = bulkRequestSchema.parse(data);
   const files = bulkFilesSchema.parse(data.files);
+
+  const user = await UserRepository.findById(userId);
+  if (!user) {
+    throw new Error('Usuário não encontrado.');
+  }
+  if (user.planUsage + files.length > user.planQuota) {
+    const remainingQuota = user.planQuota - user.planUsage;
+    const errorMessage = remainingQuota > 0 ? `Você possui apenas ${remainingQuota} correções restantes. Por favor, diminua o número de arquivos ou faça upgrade do seu plano para continuar.` : 'Você atingiu o limite mensal de uso do seu plano. Por favor, faça um upgrade para continuar.';
+    throw new Error(errorMessage);
+  }
 
   const ocrResponse = await ocrClientInstance.extractAsyncBulk(
     files.map((file) => ({ fileName: file.originalname, data: file.buffer })),
@@ -107,10 +125,17 @@ export const createBulkTaskExtractionsUseCase = async (data: {
     }),
   );
 
+  const updatedUser = await UserRepository.incrementPlanUsage({
+    id: userId,
+    amount: files.length,
+  });
+
   return {
     batchId: batch.id,
     ocrJobId: batch.ocrJobId,
     status: batch.status,
     items,
+    planUsage: updatedUser.planUsage,
+    planQuota: updatedUser.planQuota,
   };
 };
