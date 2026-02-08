@@ -55,6 +55,7 @@ src
 - [ ] Upload-time rubric selection/creation.
 - [ ] Upload-time reference material selection or task-specific prompt details. **MVP**
 - [ ] Upload options: grade/series, subject, feedback depth, correction intensity, and extra instructions
+- [ ] Shared OCR temp volume between API and worker containers.
 
 ### 3. Product features
 - [ ] Feedback system: users can submit feedback for task extractions.
