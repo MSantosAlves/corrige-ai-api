@@ -67,6 +67,7 @@ src
 - [ ] Report actions: print, export PDF, rename, reprocess, copy feedback/report, delete
 - [ ] Usage plan menu with upload limits. **MVP**
 - [ ] Plan usage quota tracking for text extractions. **MVP**
+- [x] Atomic quota reservation + rollback on hard failures
 
 ### 4. Rubrics and standards
 - [ ] Rubric-based grading: custom rubric builder/upload plus a reusable rubric library.

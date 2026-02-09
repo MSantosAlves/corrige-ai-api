@@ -44,74 +44,84 @@ export const extractTextUseCase = async (req: Request) => {
     quality_threshold: qualityThreshold,
   } = body;
 
-  const user = await UserRepository.findById(userId);
-  if (!user) {
-    throw new Error('Usuário não encontrado.');
-  }
-  if (user.planUsage >= user.planQuota) {
-    throw new Error('Limite de uso do plano atingido.');
-  }
-
   if (taskId) {
     await assertTaskOwnedByUser(taskId, userId);
   }
 
-  const ocrResponse = await ocrClientInstance.extract({
-    fileName: file.originalname,
-    data: file.buffer,
-    documentType: documentType as OCRDocumentType,
-    language,
-    preserveLayout,
-    qualityThreshold,
-  });
+  let reservedQuota = false;
+  let reservedUserUsage = 0;
+  let reservedUserQuota = 0;
 
-  let analysis = '';
-  const extractedText =
-    ocrResponse.text && ocrResponse.text.trim().length > 0 ? ocrResponse.text : '';
-  if (extractedText) {
-    try {
-      if (taskId) {
-        const task = await TaskRepository.getById(taskId);
-        if (task?.gradeCriteriaId) {
-          const criteria = await GradeCriteriaRepository.getById(task.gradeCriteriaId);
-          if (criteria) {
-            const prompt = buildGradeCriteriaPrompt(criteria, extractedText);
-            analysis = await llmClientInstance.analyzeWithPrompt(prompt);
+  try {
+    const reservedUser = await UserRepository.reservePlanUsage({ id: userId, amount: 1 });
+    reservedQuota = true;
+    reservedUserUsage = reservedUser.planUsage;
+    reservedUserQuota = reservedUser.planQuota;
+
+    const ocrResponse = await ocrClientInstance.extract({
+      fileName: file.originalname,
+      data: file.buffer,
+      documentType: documentType as OCRDocumentType,
+      language,
+      preserveLayout,
+      qualityThreshold,
+    });
+
+    let analysis = '';
+    const extractedText =
+      ocrResponse.text && ocrResponse.text.trim().length > 0 ? ocrResponse.text : '';
+    if (extractedText) {
+      try {
+        if (taskId) {
+          const task = await TaskRepository.getById(taskId);
+          if (task?.gradeCriteriaId) {
+            const criteria = await GradeCriteriaRepository.getById(task.gradeCriteriaId);
+            if (criteria) {
+              const prompt = buildGradeCriteriaPrompt(criteria, extractedText);
+              analysis = await llmClientInstance.analyzeWithPrompt(prompt);
+            }
           }
         }
+      } catch (promptError) {
+        console.warn('Falha ao aplicar prompt de critérios, usando análise padrão.', promptError);
       }
-    } catch (promptError) {
-      console.warn('Falha ao aplicar prompt de critérios, usando análise padrão.', promptError);
+
+      if (!analysis) {
+        analysis = await llmClientInstance.analyzeText(
+          extractedText,
+          documentType ?? ocrResponse.document_type,
+        );
+      }
     }
 
-    if (!analysis) {
-      analysis = await llmClientInstance.analyzeText(
-        extractedText,
-        documentType ?? ocrResponse.document_type,
-      );
+    if (taskId) {
+      try {
+        await saveTaskExtractionUseCase({
+          userId,
+          taskId,
+          ocrExtractionResult: ocrResponse,
+          analysisResult: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),
+          filename: file.originalname,
+        });
+      } catch (error) {
+        console.error('Erro ao salvar extração no banco:', error);
+      }
     }
+
+    return {
+      ...ocrResponse,
+      analysis,
+      planUsage: reservedUserUsage,
+      planQuota: reservedUserQuota,
+    };
+  } catch (error) {
+    if (reservedQuota) {
+      try {
+        await UserRepository.rollbackPlanUsage({ id: userId, amount: 1 });
+      } catch (rollbackError) {
+        console.error('Erro ao reverter consumo de plano após falha.', rollbackError);
+      }
+    }
+    throw error;
   }
-
-  if (taskId) {
-    try {
-      await saveTaskExtractionUseCase({
-        userId,
-        taskId,
-        ocrExtractionResult: ocrResponse,
-        analysisResult: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),
-        filename: file.originalname,
-      });
-    } catch (error) {
-      console.error('Erro ao salvar extração no banco:', error);
-    }
-  }
-
-  await UserRepository.incrementPlanUsage({ id: userId, amount: 1 });
-
-  return {
-    ...ocrResponse,
-    analysis,
-    planUsage: user.planUsage,
-    planQuota: user.planQuota,
-  };
 };

@@ -1,4 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/infra/http/controllers', () => ({
+  createClassController: vi.fn(),
+  createTaskController: vi.fn(),
+  extractTextController: vi.fn(),
+  listClassesController: vi.fn(),
+  listTasksController: vi.fn(),
+  saveTaskExtractionController: vi.fn(),
+  listTaskExtractionsController: vi.fn(),
+  getTaskExtractionController: vi.fn(),
+  createBulkTaskExtractionsController: vi.fn(),
+  pollBulkTaskExtractionsController: vi.fn(),
+  streamBulkTaskExtractionsController: vi.fn(),
+  createGradeCriteriaController: vi.fn(),
+  listGradeCriteriaController: vi.fn(),
+  attachGradeCriteriaToTaskController: vi.fn(),
+}));
 
 import { authMiddleware } from '@/infra/http/middlewares';
 import { appRouter } from '@/infra/http/routes';

@@ -13,6 +13,8 @@ type UserDocument = {
   plan_usage?: number;
 };
 
+const DEFAULT_PLAN_QUOTA = 10;
+
 const buildUserIdQuery = (userId: string) => {
   if (ObjectId.isValid(userId)) {
     return { $or: [{ _id: new ObjectId(userId) }, { _id: userId }] };
@@ -23,9 +25,20 @@ const buildUserIdQuery = (userId: string) => {
 const getUsersCollection = () =>
   mongoose.connection.getClient().db(env.MONGODB_DATABASE_NAME).collection<UserDocument>('users');
 
+const mapToUserEntity = (user: UserDocument): UserEntity => ({
+  id: user._id.toString(),
+  name: user.name ?? '',
+  email: user.email ?? '',
+  password: '',
+  planType: (user.plan_type as PlanType | undefined) ?? PlanType.FREE,
+  planQuota: user.plan_quota ?? DEFAULT_PLAN_QUOTA,
+  planUsage: user.plan_usage ?? 0,
+});
+
 const ensurePlanDefaults = async (user: UserDocument): Promise<UserDocument> => {
   const planType = (user.plan_type as PlanType | undefined) ?? PlanType.FREE;
-  const planQuota = typeof user.plan_quota === 'number' ? user.plan_quota : 10;
+  const planQuota =
+    typeof user.plan_quota === 'number' ? user.plan_quota : DEFAULT_PLAN_QUOTA;
   const planUsage = typeof user.plan_usage === 'number' ? user.plan_usage : 0;
 
   if (
@@ -63,13 +76,7 @@ export const UserRepository = {
     const normalizedUser = await ensurePlanDefaults(foundUser);
 
     return {
-      id: normalizedUser._id.toString(),
-      name: normalizedUser.name ?? '',
-      email: normalizedUser.email ?? '',
-      password: '',
-      planType: (normalizedUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: normalizedUser.plan_quota ?? 10,
-      planUsage: normalizedUser.plan_usage ?? 0,
+      ...mapToUserEntity(normalizedUser),
     };
   },
   create: async (): Promise<UserEntity> => {
@@ -84,49 +91,70 @@ export const UserRepository = {
     const normalizedUser = await ensurePlanDefaults(foundUser);
 
     return {
-      id: normalizedUser._id.toString(),
-      name: normalizedUser.name ?? '',
-      email: normalizedUser.email ?? '',
-      password: '',
-      planType: (normalizedUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: normalizedUser.plan_quota ?? 10,
-      planUsage: normalizedUser.plan_usage ?? 0,
+      ...mapToUserEntity(normalizedUser),
     };
   },
-  incrementPlanUsage: async (data: { id: string; amount: number }): Promise<UserEntity> => {
-    const foundUser = await getUsersCollection().findOne(buildUserIdQuery(data.id));
-    if (!foundUser) {
-      throw new Error('Usuário não encontrado.');
+  reservePlanUsage: async (data: { id: string; amount: number }): Promise<UserEntity> => {
+    const amount = Math.floor(data.amount);
+    if (amount <= 0) {
+      throw new Error('Quantidade inválida para consumo do plano.');
     }
 
-    const normalizedUser = await ensurePlanDefaults(foundUser);
-
-    const planQuota =
-      typeof normalizedUser.plan_quota === 'number' ? normalizedUser.plan_quota : 10;
-    const currentUsage =
-      typeof normalizedUser.plan_usage === 'number' ? normalizedUser.plan_usage : 0;
-    const nextUsage = currentUsage + data.amount;
-    if (nextUsage > planQuota) {
-      throw new Error('Limite de uso do plano atingido.');
-    }
-
+    const query = buildUserIdQuery(data.id);
     const updateResult = await getUsersCollection().findOneAndUpdate(
-      { _id: normalizedUser._id },
-      { $set: { plan_usage: nextUsage } },
+      {
+        ...query,
+        $expr: {
+          $lte: [
+            { $add: [{ $ifNull: ['$plan_usage', 0] }, amount] },
+            { $ifNull: ['$plan_quota', DEFAULT_PLAN_QUOTA] },
+          ],
+        },
+      },
+      { $inc: { plan_usage: amount } },
       { returnDocument: 'after', includeResultMetadata: true },
     );
 
-    const saved = updateResult.value ?? { ...normalizedUser, plan_usage: nextUsage };
+    if (!updateResult.value) {
+      const foundUser = await getUsersCollection().findOne(query);
+      if (!foundUser) {
+        throw new Error('Usuário não encontrado.');
+      }
+      throw new Error('Limite de uso do plano atingido.');
+    }
 
-    return {
-      id: saved._id.toString(),
-      name: saved.name ?? '',
-      email: saved.email ?? '',
-      password: '',
-      planType: (saved.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: saved.plan_quota ?? 10,
-      planUsage: saved.plan_usage ?? nextUsage,
-    };
+    const normalizedUser = await ensurePlanDefaults(updateResult.value);
+    return mapToUserEntity(normalizedUser);
+  },
+  rollbackPlanUsage: async (data: { id: string; amount: number }): Promise<UserEntity> => {
+    const amount = Math.floor(data.amount);
+    if (amount <= 0) {
+      throw new Error('Quantidade inválida para rollback do plano.');
+    }
+
+    const updateResult = await getUsersCollection().findOneAndUpdate(
+      buildUserIdQuery(data.id),
+      [
+        {
+          $set: {
+            plan_usage: {
+              $max: [{ $subtract: [{ $ifNull: ['$plan_usage', 0] }, amount] }, 0],
+            },
+          },
+        },
+      ],
+      { returnDocument: 'after', includeResultMetadata: true },
+    );
+
+    if (!updateResult.value) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    const normalizedUser = await ensurePlanDefaults(updateResult.value);
+    return mapToUserEntity(normalizedUser);
+  },
+  incrementPlanUsage: async (data: { id: string; amount: number }): Promise<UserEntity> => {
+    return await UserRepository.reservePlanUsage(data);
   },
 };
 
