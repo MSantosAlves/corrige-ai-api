@@ -38,6 +38,13 @@ const envSchema = z.object({
   LLM_WORKER_CONCURRENCY: z.coerce.number().optional().default(1),
   SSE_POLL_INTERVAL_MS: z.coerce.number().optional().default(3000),
   SSE_KEEPALIVE_INTERVAL_MS: z.coerce.number().optional().default(15000),
+  UPLOAD_MAX_FILE_SIZE_BYTES: z.coerce.number().optional().default(10 * 1024 * 1024),
+  UPLOAD_MAX_FILES_PER_BULK: z.coerce.number().optional().default(10),
+  UPLOAD_MAX_PARTS: z.coerce.number().optional().default(30),
+  UPLOAD_ALLOWED_MIME_TYPES: z
+    .string()
+    .optional()
+    .default('application/pdf,image/png,image/jpeg'),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
   ANTHROPIC_FALLBACK_MODEL: z.string().optional(),
@@ -74,6 +81,10 @@ export const env = envSchema.parse({
   LLM_WORKER_CONCURRENCY: process.env.LLM_WORKER_CONCURRENCY,
   SSE_POLL_INTERVAL_MS: process.env.SSE_POLL_INTERVAL_MS,
   SSE_KEEPALIVE_INTERVAL_MS: process.env.SSE_KEEPALIVE_INTERVAL_MS,
+  UPLOAD_MAX_FILE_SIZE_BYTES: process.env.UPLOAD_MAX_FILE_SIZE_BYTES,
+  UPLOAD_MAX_FILES_PER_BULK: process.env.UPLOAD_MAX_FILES_PER_BULK,
+  UPLOAD_MAX_PARTS: process.env.UPLOAD_MAX_PARTS,
+  UPLOAD_ALLOWED_MIME_TYPES: process.env.UPLOAD_ALLOWED_MIME_TYPES,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
   ANTHROPIC_FALLBACK_MODEL: process.env.ANTHROPIC_FALLBACK_MODEL,
