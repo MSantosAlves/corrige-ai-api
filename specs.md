@@ -45,7 +45,7 @@ src
 ## Progress Tracker
 
 ### 1. Foundation
-- [ ] Google login and email verification via Better Auth. **MVP**
+- [ ] Google login and email verification via Better Auth. **MVP** (implemented, pending confirmation)
 - [ ] User identity and profile management
 - [ ] Cache and performance optimization strategy.
 
@@ -95,6 +95,11 @@ Goal: ESM migration, Better Auth with Google + email verification, and Stripe su
 - [ ] Session/cookie config for `.revisafacil.com` and CORS credentials for `app.revisafacil.com`
 - [ ] Google OAuth provider (client id/secret, callback URL, consent screen)
 - [ ] Email verification (send, verify, resend) using Resend
+- [ ] Resend verification email logging (pending confirmation)
+- [ ] Email verification template (pending confirmation)
+- [ ] Auth build fixes (pending confirmation)
+- [ ] Email verification redirect to frontend (pending confirmation)
+- [ ] Email verification callbackURL fix (pending confirmation)
 - [ ] Frontend Next.js integration (sign-in, callback, verify-email, protected routes)
 - [ ] Stripe core setup (SDK, checkout session, customer portal)
 - [ ] Stripe webhooks (signature verification, subscription lifecycle updates)

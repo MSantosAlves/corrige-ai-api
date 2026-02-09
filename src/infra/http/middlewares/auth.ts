@@ -1,40 +1,37 @@
 import type { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import { fromNodeHeaders } from 'better-auth/node';
 
-import { env } from '@/infra/config/env';
+import { auth } from '@/infra/auth/better-auth';
 
 type AuthUser = {
   id: string;
   email?: string;
   name?: string;
+  emailVerified?: boolean;
 };
 
-const jwtSecret = env.JWT_SECRET;
-
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.header('authorization');
-  const bearerToken =
-    authHeader && authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
-  const queryToken = typeof req.query?.token === 'string' ? req.query.token : '';
-  const token = bearerToken || queryToken;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token de autenticação ausente.' });
-  }
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const payload = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
-    const userId = typeof payload.sub === 'string' ? payload.sub : '';
-    if (!userId) {
-      return res.status(401).json({ error: 'Token inválido.' });
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (!session?.user) {
+      return res.status(401).json({ error: 'Sessão inválida.' });
+    }
+
+    if (!session.user.emailVerified) {
+      return res.status(403).json({ error: 'E-mail não verificado.', type: 'EMAIL_NOT_VERIFIED' });
     }
 
     req.user = {
-      id: userId,
-      email: typeof payload.email === 'string' ? payload.email : undefined,
-      name: typeof payload.name === 'string' ? payload.name : undefined,
+      id: session.user.id,
+      email: session.user.email ?? undefined,
+      name: session.user.name ?? undefined,
+      emailVerified: session.user.emailVerified,
     } satisfies AuthUser;
     return next();
   } catch {
-    return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    return res.status(401).json({ error: 'Sessão inválida.', type: 'INVALID_SESSION' });
   }
 };

@@ -1,112 +1,131 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
+import { ObjectId } from 'mongodb';
 
 import { PlanType, type UserEntity } from '@/domain/entities';
+import { env } from '@/infra/config/env';
 
-type UserDocument = mongoose.Document & {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  email: string;
-  password: string;
+type UserDocument = {
+  _id: ObjectId | string;
+  name?: string;
+  email?: string;
   plan_type?: PlanType;
   plan_quota?: number;
   plan_usage?: number;
 };
 
-const userSchema = new Schema<UserDocument>(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    plan_type: {
-      type: String,
-      enum: Object.values(PlanType),
-      default: PlanType.FREE,
-      required: true,
-    },
-    plan_quota: { type: Number, default: 50, required: true },
-    plan_usage: { type: Number, default: 0, required: true },
-  },
-  { timestamps: true },
-);
+const buildUserIdQuery = (userId: string) => {
+  if (ObjectId.isValid(userId)) {
+    return { $or: [{ _id: new ObjectId(userId) }, { _id: userId }] };
+  }
+  return { _id: userId };
+};
 
-const userModel = mongoose.models.User || mongoose.model<UserDocument>('User', userSchema);
+const getUsersCollection = () =>
+  mongoose.connection.getClient().db(env.MONGODB_DATABASE_NAME).collection<UserDocument>('users');
+
+const ensurePlanDefaults = async (user: UserDocument): Promise<UserDocument> => {
+  const planType = (user.plan_type as PlanType | undefined) ?? PlanType.FREE;
+  const planQuota = typeof user.plan_quota === 'number' ? user.plan_quota : 10;
+  const planUsage = typeof user.plan_usage === 'number' ? user.plan_usage : 0;
+
+  if (
+    user.plan_type !== planType ||
+    user.plan_quota !== planQuota ||
+    user.plan_usage !== planUsage
+  ) {
+    await getUsersCollection().updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          plan_type: planType,
+          plan_quota: planQuota,
+          plan_usage: planUsage,
+        },
+      },
+    );
+  }
+
+  return {
+    ...user,
+    plan_type: planType,
+    plan_quota: planQuota,
+    plan_usage: planUsage,
+  };
+};
 
 export const UserRepository = {
   findByEmail: async (email: string): Promise<UserEntity | null> => {
-    const foundUser = await userModel.findOne({ email }).lean<UserDocument | null>().exec();
+    const foundUser = await getUsersCollection().findOne({ email });
     if (!foundUser) {
       return null;
     }
+
+    const normalizedUser = await ensurePlanDefaults(foundUser);
+
     return {
-      id: foundUser._id.toString(),
-      name: foundUser.name,
-      email: foundUser.email,
-      password: foundUser.password,
-      planType: (foundUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: foundUser.plan_quota ?? 50,
-      planUsage: foundUser.plan_usage ?? 0,
+      id: normalizedUser._id.toString(),
+      name: normalizedUser.name ?? '',
+      email: normalizedUser.email ?? '',
+      password: '',
+      planType: (normalizedUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
+      planQuota: normalizedUser.plan_quota ?? 10,
+      planUsage: normalizedUser.plan_usage ?? 0,
     };
   },
-  create: async (data: { name: string; email: string; password: string }): Promise<UserEntity> => {
-    const newUser = {
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      plan_type: PlanType.FREE,
-      plan_quota: 50,
-      plan_usage: 0,
-    };
-    const created = await userModel.create(newUser);
-    const saved = created.toObject() as UserDocument;
-    return {
-      id: saved._id.toString(),
-      name: saved.name,
-      email: saved.email,
-      password: saved.password,
-      planType: (saved.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: saved.plan_quota ?? 50,
-      planUsage: saved.plan_usage ?? 0,
-    };
+  create: async (): Promise<UserEntity> => {
+    throw new Error('Use Better Auth para criar usuários.');
   },
   findById: async (id: string): Promise<UserEntity | null> => {
-    const foundUser = await userModel.findById(id).lean<UserDocument | null>().exec();
+    const foundUser = await getUsersCollection().findOne(buildUserIdQuery(id));
     if (!foundUser) {
       return null;
     }
+
+    const normalizedUser = await ensurePlanDefaults(foundUser);
+
     return {
-      id: foundUser._id.toString(),
-      name: foundUser.name,
-      email: foundUser.email,
-      password: foundUser.password,
-      planType: (foundUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: foundUser.plan_quota ?? 50,
-      planUsage: foundUser.plan_usage ?? 0,
+      id: normalizedUser._id.toString(),
+      name: normalizedUser.name ?? '',
+      email: normalizedUser.email ?? '',
+      password: '',
+      planType: (normalizedUser.plan_type as PlanType | undefined) ?? PlanType.FREE,
+      planQuota: normalizedUser.plan_quota ?? 10,
+      planUsage: normalizedUser.plan_usage ?? 0,
     };
   },
   incrementPlanUsage: async (data: { id: string; amount: number }): Promise<UserEntity> => {
-    const foundUser = await userModel.findById(data.id).exec();
+    const foundUser = await getUsersCollection().findOne(buildUserIdQuery(data.id));
     if (!foundUser) {
       throw new Error('Usuário não encontrado.');
     }
 
-    const planQuota = typeof foundUser.plan_quota === 'number' ? foundUser.plan_quota : 50;
-    const currentUsage = typeof foundUser.plan_usage === 'number' ? foundUser.plan_usage : 0;
+    const normalizedUser = await ensurePlanDefaults(foundUser);
+
+    const planQuota =
+      typeof normalizedUser.plan_quota === 'number' ? normalizedUser.plan_quota : 10;
+    const currentUsage =
+      typeof normalizedUser.plan_usage === 'number' ? normalizedUser.plan_usage : 0;
     const nextUsage = currentUsage + data.amount;
     if (nextUsage > planQuota) {
       throw new Error('Limite de uso do plano atingido.');
     }
 
-    foundUser.plan_usage = nextUsage;
-    const saved = await foundUser.save();
+    const updateResult = await getUsersCollection().findOneAndUpdate(
+      { _id: normalizedUser._id },
+      { $set: { plan_usage: nextUsage } },
+      { returnDocument: 'after', includeResultMetadata: true },
+    );
+
+    const saved = updateResult.value ?? { ...normalizedUser, plan_usage: nextUsage };
 
     return {
       id: saved._id.toString(),
-      name: saved.name,
-      email: saved.email,
-      password: saved.password,
+      name: saved.name ?? '',
+      email: saved.email ?? '',
+      password: '',
       planType: (saved.plan_type as PlanType | undefined) ?? PlanType.FREE,
-      planQuota: saved.plan_quota ?? 50,
-      planUsage: saved.plan_usage ?? 0,
+      planQuota: saved.plan_quota ?? 10,
+      planUsage: saved.plan_usage ?? nextUsage,
     };
   },
 };

@@ -1,4 +1,3 @@
-export { signInController, signUpController } from './auth-controller.js';
 export { createClassController, listClassesController } from './class-controller.js';
 export { extractTextController } from './ocr-controller.js';
 export { createTaskController, listTasksController } from './task-controller.js';

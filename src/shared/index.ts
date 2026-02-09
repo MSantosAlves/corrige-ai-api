@@ -1,7 +1,9 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import { toNodeHandler } from 'better-auth/node';
 
 import { env } from '@/infra/config/env';
+import { auth } from '@/infra/auth/better-auth';
 import { connectMongo } from '@/infra/db/mongo';
 import { appRouter } from '@/infra/http/routes';
 import { requestLogger } from '@/infra/http/middlewares';
@@ -36,8 +38,10 @@ app.use(
       }
       return callback(new Error('Not allowed by CORS'), false);
     },
+    credentials: true,
   }),
 );
+app.use('/api/auth', toNodeHandler(auth));
 app.use(express.json());
 app.use(requestLogger);
 
