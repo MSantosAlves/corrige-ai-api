@@ -6,6 +6,7 @@ import { saveTaskExtractionUseCase } from '@/application/usecases/extractions';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { GradeCriteriaRepository, TaskRepository, UserRepository } from '@/infra/db/repositories';
 import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
+import { assertTaskOwnedByUser } from '@/application/usecases/shared/ownership';
 import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
@@ -51,6 +52,10 @@ export const extractTextUseCase = async (req: Request) => {
     throw new Error('Limite de uso do plano atingido.');
   }
 
+  if (taskId) {
+    await assertTaskOwnedByUser(taskId, userId);
+  }
+
   const ocrResponse = await ocrClientInstance.extract({
     fileName: file.originalname,
     data: file.buffer,
@@ -90,6 +95,7 @@ export const extractTextUseCase = async (req: Request) => {
   if (taskId) {
     try {
       await saveTaskExtractionUseCase({
+        userId,
         taskId,
         ocrExtractionResult: ocrResponse,
         analysisResult: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),

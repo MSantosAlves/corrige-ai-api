@@ -4,15 +4,10 @@ import { createClassUseCase, listClassesUseCase } from '@/application/usecases/c
 
 export const createClassController = async (req: Request, res: Response) => {
   const name = typeof req.body?.name === 'string' ? req.body.name : '';
-  const userId =
-    typeof req.body?.user_id === 'string'
-      ? req.body.user_id
-      : typeof req.query?.user_id === 'string'
-        ? req.query.user_id
-        : '';
+  const userId = req.user?.id ?? '';
 
   if (!name || !userId) {
-    return res.status(400).json({ error: 'name e user_id são obrigatórios.' });
+    return res.status(400).json({ error: 'name é obrigatório.' });
   }
 
   try {
@@ -29,15 +24,10 @@ export const createClassController = async (req: Request, res: Response) => {
 };
 
 export const listClassesController = async (req: Request, res: Response) => {
-  const userId =
-    typeof req.query?.user_id === 'string'
-      ? req.query.user_id
-      : typeof req.body?.user_id === 'string'
-        ? req.body.user_id
-        : '';
+  const userId = req.user?.id ?? '';
 
   if (!userId) {
-    return res.status(400).json({ error: 'user_id é obrigatório.' });
+    return res.status(401).json({ error: 'Sessão inválida.' });
   }
 
   try {

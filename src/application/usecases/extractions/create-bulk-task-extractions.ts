@@ -17,6 +17,7 @@ import {
   type TaskExtractionBatchStatus,
   type TaskExtractionEntity,
 } from '@/domain/entities';
+import { assertTaskOwnedByUser } from '@/application/usecases/shared/ownership';
 import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
@@ -85,6 +86,7 @@ export const createBulkTaskExtractionsUseCase = async (data: {
   if (!user) {
     throw new Error('Usuário não encontrado.');
   }
+  await assertTaskOwnedByUser(input.taskId, userId);
   if (user.planUsage + files.length > user.planQuota) {
     const remainingQuota = user.planQuota - user.planUsage;
     const errorMessage =

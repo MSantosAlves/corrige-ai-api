@@ -74,6 +74,8 @@ src
 ### 5. Integrations and compliance
 - [ ] LMS integrations: Google Classroom, Canvas, Schoology, and Moodle.
 - [ ] Security and compliance readiness: LGPD plus a roadmap for SOC 2/ISO 27001.
+- [ ] Route security audit report (implemented, pending confirmation)
+- [ ] BOLA/IDOR fixes + negative authorization tests with Vitest (implemented, pending confirmation)
 
 ### 6. Integrity and analytics
 - [ ] Detect AI-generated content in submissions.

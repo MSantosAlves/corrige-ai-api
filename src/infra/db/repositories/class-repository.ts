@@ -40,6 +40,21 @@ export const ClassRepository = {
       userId: classItem.user_id,
     }));
   },
+
+  getById: async (id: string): Promise<ClassEntity | null> => {
+    if (!mongoose.isValidObjectId(id)) {
+      return null;
+    }
+    const classItem = await classModel.findById(id).lean<ClassDocument | null>().exec();
+    if (!classItem) {
+      return null;
+    }
+    return {
+      id: classItem._id.toString(),
+      name: classItem.name,
+      userId: classItem.user_id,
+    };
+  },
 };
 
 export const classRepository = ClassRepository;

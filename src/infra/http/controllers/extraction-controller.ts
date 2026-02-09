@@ -4,11 +4,11 @@ import type { MulterFile } from '@/infra/http/types/multer';
 import {
   createBulkTaskExtractionsUseCase,
   getBulkTaskExtractionsUseCase,
+  getTaskExtractionUseCase,
   listTaskExtractionsUseCase,
   saveTaskExtractionUseCase,
 } from '@/application/usecases/extractions';
 import { TaskExtractionBatchStatuses, TaskExtractionStatuses } from '@/domain/entities';
-import { TaskExtractionRepository } from '@/infra/db/repositories';
 import { env } from '@/infra/config/env';
 import { logger } from '@/shared/logger';
 
@@ -83,14 +83,15 @@ export const createBulkTaskExtractionsController = async (req: MulterRequest, re
 };
 
 export const pollBulkTaskExtractionsController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const batchId = typeof req.params?.batchId === 'string' ? req.params.batchId : '';
 
-  if (!batchId) {
+  if (!userId || !batchId) {
     return res.status(400).json({ error: 'batchId é obrigatório.' });
   }
 
   try {
-    const result = await getBulkTaskExtractionsUseCase(batchId);
+    const result = await getBulkTaskExtractionsUseCase({ batchId, userId });
     return res.json({
       batch_id: result.batchId,
       job_id: result.ocrJobId,
@@ -115,9 +116,10 @@ export const pollBulkTaskExtractionsController = async (req: Request, res: Respo
 };
 
 export const streamBulkTaskExtractionsController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const batchId = typeof req.params?.batchId === 'string' ? req.params.batchId : '';
 
-  if (!batchId) {
+  if (!userId || !batchId) {
     return res.status(400).json({ error: 'batchId é obrigatório.' });
   }
 
@@ -136,7 +138,7 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
 
   const poll = async () => {
     try {
-      const result = await getBulkTaskExtractionsUseCase(batchId);
+      const result = await getBulkTaskExtractionsUseCase({ batchId, userId });
       const totalCount = result.items.length;
       const completedCount = result.items.filter(
         (item) =>
@@ -195,6 +197,7 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
 };
 
 export const saveTaskExtractionController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const taskId =
     typeof req.body?.task_id === 'string'
       ? req.body.task_id
@@ -207,7 +210,7 @@ export const saveTaskExtractionController = async (req: Request, res: Response) 
     typeof req.body?.analysis_result === 'string' ? req.body.analysis_result : '';
   const filename = typeof req.body?.filename === 'string' ? req.body.filename : '';
 
-  if (!taskId || !ocrExtractionResult || !filename) {
+  if (!userId || !taskId || !ocrExtractionResult || !filename) {
     return res.status(400).json({
       error: 'task_id, ocr_extraction_result e filename são obrigatórios.',
     });
@@ -215,6 +218,7 @@ export const saveTaskExtractionController = async (req: Request, res: Response) 
 
   try {
     const created = await saveTaskExtractionUseCase({
+      userId,
       taskId,
       ocrExtractionResult,
       analysisResult,
@@ -236,6 +240,7 @@ export const saveTaskExtractionController = async (req: Request, res: Response) 
 };
 
 export const listTaskExtractionsController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const taskId =
     typeof req.query?.task_id === 'string'
       ? req.query.task_id
@@ -243,12 +248,12 @@ export const listTaskExtractionsController = async (req: Request, res: Response)
         ? req.body.task_id
         : '';
 
-  if (!taskId) {
+  if (!userId || !taskId) {
     return res.status(400).json({ error: 'task_id é obrigatório.' });
   }
 
   try {
-    const extractions = await listTaskExtractionsUseCase(taskId);
+    const extractions = await listTaskExtractionsUseCase({ taskId, userId });
     return res.json({
       items: extractions.map((extraction) => ({
         id: extraction.id,
@@ -267,14 +272,15 @@ export const listTaskExtractionsController = async (req: Request, res: Response)
 };
 
 export const getTaskExtractionController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const id = typeof req.params?.id === 'string' ? req.params.id : '';
 
-  if (!id) {
+  if (!userId || !id) {
     return res.status(400).json({ error: 'id é obrigatório.' });
   }
 
   try {
-    const extraction = await TaskExtractionRepository.getById(id);
+    const extraction = await getTaskExtractionUseCase({ id, userId });
     if (!extraction) {
       return res.status(404).json({ error: 'Análise não encontrada.' });
     }
