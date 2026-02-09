@@ -17,6 +17,7 @@ import {
   type TaskExtractionBatchStatus,
   type TaskExtractionEntity,
 } from '@/domain/entities';
+import { assertTaskOwnedByUser } from '@/application/usecases/shared/ownership';
 import { objectIdSchema } from '@/shared/validation';
 
 const ocrClientInstance = new OCRClient();
@@ -81,64 +82,70 @@ export const createBulkTaskExtractionsUseCase = async (data: {
   const input = bulkRequestSchema.parse(data);
   const files = bulkFilesSchema.parse(data.files);
 
-  const user = await UserRepository.findById(userId);
-  if (!user) {
-    throw new Error('Usuário não encontrado.');
+  await assertTaskOwnedByUser(input.taskId, userId);
+  let reservedQuota = false;
+  let planUsage = 0;
+  let planQuota = 0;
+
+  try {
+    const reservedUser = await UserRepository.reservePlanUsage({
+      id: userId,
+      amount: files.length,
+    });
+    reservedQuota = true;
+    planUsage = reservedUser.planUsage;
+    planQuota = reservedUser.planQuota;
+
+    const ocrResponse = await ocrClientInstance.extractAsyncBulk(
+      files.map((file) => ({ fileName: file.originalname, data: file.buffer })),
+      {
+        documentType: input.documentType as OCRDocumentType,
+        language: input.language,
+        preserveLayout: input.preserveLayout,
+        qualityThreshold: input.qualityThreshold,
+      },
+    );
+
+    const batch = await TaskExtractionBatchRepository.create({
+      taskId: input.taskId,
+      ocrJobId: ocrResponse.parent_job_id,
+      status: mapBatchStatus(ocrResponse.status),
+    });
+
+    await enqueueBulkExtractionPoll(batch.id);
+
+    const children = ocrResponse.children ?? [];
+    const items = await Promise.all(
+      files.map((file) => {
+        const child = children.find((entry) => entry.filename === file.originalname);
+        return TaskExtractionRepository.create({
+          taskId: input.taskId,
+          filename: file.originalname,
+          batchId: batch.id,
+          status: mapExtractionStatus(child?.status ?? ocrResponse.status),
+          ocrResultId: child?.job_id ?? null,
+          ocrExtractionResult: child?.result ?? null,
+          analysisResult: null,
+        });
+      }),
+    );
+
+    return {
+      batchId: batch.id,
+      ocrJobId: batch.ocrJobId,
+      status: batch.status,
+      items,
+      planUsage,
+      planQuota,
+    };
+  } catch (error) {
+    if (reservedQuota) {
+      try {
+        await UserRepository.rollbackPlanUsage({ id: userId, amount: files.length });
+      } catch (rollbackError) {
+        console.error('Erro ao reverter consumo de plano após falha em lote.', rollbackError);
+      }
+    }
+    throw error;
   }
-  if (user.planUsage + files.length > user.planQuota) {
-    const remainingQuota = user.planQuota - user.planUsage;
-    const errorMessage =
-      remainingQuota > 0
-        ? `Você possui apenas ${remainingQuota} correções restantes. Por favor, diminua o número de arquivos ou faça upgrade do seu plano para continuar.`
-        : 'Você atingiu o limite mensal de uso do seu plano. Por favor, faça um upgrade para continuar.';
-    throw new Error(errorMessage);
-  }
-
-  const ocrResponse = await ocrClientInstance.extractAsyncBulk(
-    files.map((file) => ({ fileName: file.originalname, data: file.buffer })),
-    {
-      documentType: input.documentType as OCRDocumentType,
-      language: input.language,
-      preserveLayout: input.preserveLayout,
-      qualityThreshold: input.qualityThreshold,
-    },
-  );
-
-  const batch = await TaskExtractionBatchRepository.create({
-    taskId: input.taskId,
-    ocrJobId: ocrResponse.parent_job_id,
-    status: mapBatchStatus(ocrResponse.status),
-  });
-
-  await enqueueBulkExtractionPoll(batch.id);
-
-  const children = ocrResponse.children ?? [];
-  const items = await Promise.all(
-    files.map((file) => {
-      const child = children.find((entry) => entry.filename === file.originalname);
-      return TaskExtractionRepository.create({
-        taskId: input.taskId,
-        filename: file.originalname,
-        batchId: batch.id,
-        status: mapExtractionStatus(child?.status ?? ocrResponse.status),
-        ocrResultId: child?.job_id ?? null,
-        ocrExtractionResult: child?.result ?? null,
-        analysisResult: null,
-      });
-    }),
-  );
-
-  const updatedUser = await UserRepository.incrementPlanUsage({
-    id: userId,
-    amount: files.length,
-  });
-
-  return {
-    batchId: batch.id,
-    ocrJobId: batch.ocrJobId,
-    status: batch.status,
-    items,
-    planUsage: updatedUser.planUsage,
-    planQuota: updatedUser.planQuota,
-  };
 };

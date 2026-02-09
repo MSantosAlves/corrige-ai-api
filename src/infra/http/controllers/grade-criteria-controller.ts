@@ -9,11 +9,7 @@ import { GradeCriteriaClassification } from '@/domain/entities';
 
 const getUserIdFromAuth = (req: Request): string => {
   const authUser = (req as Request & { user?: { id?: string } }).user;
-  if (authUser?.id) {
-    return authUser.id;
-  }
-  const tokenUserId = typeof req.query?.user_id === 'string' ? req.query.user_id : '';
-  return tokenUserId;
+  return authUser?.id ?? '';
 };
 
 export const createGradeCriteriaController = async (req: Request, res: Response) => {

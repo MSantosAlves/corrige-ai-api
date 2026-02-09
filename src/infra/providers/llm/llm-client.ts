@@ -1,4 +1,4 @@
-import { env } from '../../config/env';
+import { env } from '../../config/env.js';
 import { logger } from '@/shared/logger';
 
 type AnthropicMessageContent = {

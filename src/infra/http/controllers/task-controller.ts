@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { createTaskUseCase, listTasksUseCase } from '@/application/usecases';
 
 export const createTaskController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const classId =
     typeof req.body?.class_id === 'string'
       ? req.body.class_id
@@ -12,12 +13,13 @@ export const createTaskController = async (req: Request, res: Response) => {
   const title = typeof req.body?.title === 'string' ? req.body.title : '';
   const description = typeof req.body?.description === 'string' ? req.body.description : '';
 
-  if (!classId || !title) {
+  if (!userId || !classId || !title) {
     return res.status(400).json({ error: 'class_id e title são obrigatórios.' });
   }
 
   try {
     const created = await createTaskUseCase({
+      userId,
       classId,
       title,
       description: description || undefined,
@@ -39,6 +41,7 @@ export const createTaskController = async (req: Request, res: Response) => {
 };
 
 export const listTasksController = async (req: Request, res: Response) => {
+  const userId = req.user?.id ?? '';
   const classId =
     typeof req.query?.class_id === 'string'
       ? req.query.class_id
@@ -46,12 +49,12 @@ export const listTasksController = async (req: Request, res: Response) => {
         ? req.body.class_id
         : '';
 
-  if (!classId) {
+  if (!userId || !classId) {
     return res.status(400).json({ error: 'class_id é obrigatório.' });
   }
 
   try {
-    const tasks = await listTasksUseCase(classId);
+    const tasks = await listTasksUseCase({ classId, userId });
     return res.json({
       items: tasks.map((task) => ({
         id: task.id,

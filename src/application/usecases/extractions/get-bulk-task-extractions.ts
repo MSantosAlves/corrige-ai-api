@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
 import {
   TaskExtractionBatchStatuses,
@@ -5,23 +7,25 @@ import {
   type TaskExtractionBatchStatus,
   type TaskExtractionEntity,
 } from '@/domain/entities';
+import { assertBatchOwnedByUser } from '@/application/usecases/shared/ownership';
 import { objectIdSchema } from '@/shared/validation';
 
-const getSchema = objectIdSchema;
+const getSchema = z.object({
+  batchId: objectIdSchema,
+  userId: objectIdSchema,
+});
 
-export const getBulkTaskExtractionsUseCase = async (
-  batchId: string,
-): Promise<{
+export const getBulkTaskExtractionsUseCase = async (data: {
+  batchId: string;
+  userId: string;
+}): Promise<{
   batchId: string;
   ocrJobId: string;
   status: TaskExtractionBatchStatus;
   items: TaskExtractionEntity[];
 }> => {
-  const input = getSchema.parse(batchId);
-  const batch = await TaskExtractionBatchRepository.getById(input);
-  if (!batch) {
-    throw new Error('Lote de extrações não encontrado.');
-  }
+  const input = getSchema.parse(data);
+  const batch = await assertBatchOwnedByUser(input.batchId, input.userId);
 
   const items = await TaskExtractionRepository.listByBatchId(batch.id);
   const totalCount = items.length;

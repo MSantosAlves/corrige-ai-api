@@ -1,2 +1,2 @@
-export { createClassUseCase } from './create-class';
-export { listClassesUseCase } from './list-classes';
+export { createClassUseCase } from './create-class.js';
+export { listClassesUseCase } from './list-classes.js';

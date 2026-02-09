@@ -1,14 +1,13 @@
 import express, { Router } from 'express';
 import multer from 'multer';
 
+import { env } from '@/infra/config/env';
 import {
   createClassController,
   createTaskController,
   extractTextController,
   listClassesController,
   listTasksController,
-  signInController,
-  signUpController,
   saveTaskExtractionController,
   listTaskExtractionsController,
   getTaskExtractionController,
@@ -28,7 +27,27 @@ import {
 } from '@/infra/http/middlewares';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const allowedMimeTypes = new Set(
+  env.UPLOAD_ALLOWED_MIME_TYPES.split(',')
+    .map((item) => item.trim())
+    .filter(Boolean),
+);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: env.UPLOAD_MAX_FILE_SIZE_BYTES,
+    files: env.UPLOAD_MAX_FILES_PER_BULK,
+    parts: env.UPLOAD_MAX_PARTS,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!allowedMimeTypes.has(file.mimetype)) {
+      cb(new Error(`Unsupported file type: ${file.mimetype}`));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 router.get('/health', publicRateLimiter, publicHourlyRateLimiter, (_req, res) => {
   res.status(200).send('OK');
@@ -37,9 +56,6 @@ router.get('/health', publicRateLimiter, publicHourlyRateLimiter, (_req, res) =>
 router.get('/', publicRateLimiter, publicHourlyRateLimiter, (_req, res) => {
   res.status(200).send('OK');
 });
-
-router.post('/auth/sign-in', publicRateLimiter, publicHourlyRateLimiter, signInController);
-router.post('/auth/sign-up', publicRateLimiter, publicHourlyRateLimiter, signUpController);
 
 router.use(authMiddleware);
 router.use(globalRateLimiter);
@@ -56,7 +72,7 @@ router.post('/extractions', saveTaskExtractionController);
 router.post(
   '/extractions/bulk',
   llmRateLimiter,
-  upload.array('files'),
+  upload.array('files', env.UPLOAD_MAX_FILES_PER_BULK),
   createBulkTaskExtractionsController as express.RequestHandler,
 );
 router.get(
