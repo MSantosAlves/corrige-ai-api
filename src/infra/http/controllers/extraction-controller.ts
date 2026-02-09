@@ -9,6 +9,7 @@ import {
   saveTaskExtractionUseCase,
 } from '@/application/usecases/extractions';
 import { TaskExtractionBatchStatuses, TaskExtractionStatuses } from '@/domain/entities';
+import { USER_BLOCKED_ERROR } from '@/infra/db/repositories';
 import { env } from '@/infra/config/env';
 import { logger } from '@/shared/logger';
 
@@ -60,6 +61,7 @@ export const createBulkTaskExtractionsController = async (req: MulterRequest, re
       batch_id: result.batchId,
       job_id: result.ocrJobId,
       status: result.status,
+      user: result.user,
       items: result.items.map((item) => ({
         id: item.id,
         task_id: item.taskId,
@@ -75,6 +77,9 @@ export const createBulkTaskExtractionsController = async (req: MulterRequest, re
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao criar extrações em lote.';
+    if (message === USER_BLOCKED_ERROR) {
+      return res.status(403).json({ error: message });
+    }
     if (message === 'Limite de uso do plano atingido.') {
       return res.status(400).json({ error: message });
     }
@@ -96,6 +101,7 @@ export const pollBulkTaskExtractionsController = async (req: Request, res: Respo
       batch_id: result.batchId,
       job_id: result.ocrJobId,
       status: result.status,
+      user: result.user,
       items: result.items.map((item) => ({
         id: item.id,
         task_id: item.taskId,
@@ -151,6 +157,7 @@ export const streamBulkTaskExtractionsController = async (req: Request, res: Res
         batch_id: result.batchId,
         job_id: result.ocrJobId,
         status: result.status,
+        user: result.user,
         progress: {
           total: totalCount,
           completed: completedCount,

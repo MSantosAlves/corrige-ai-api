@@ -51,6 +51,8 @@ src
 
 ### 2. Extraction pipeline
 - [ ] SSE endpoint auth strategy (cookies vs token in query) and middleware rules. **MVP**
+- [x] OCR classifier rejection handling (`blocked_by_ocr`, blocking reason, PT-BR invalid content message, and malicious-user lock with `block_info`) (pending confirmation)
+- [x] Expose user block state (`isBlocked`/`blockInfo`) to frontend responses (extraction, bulk poll/SSE) (pending confirmation)
 - [ ] Allow user-defined custom prompts on the extraction endpoint.
 - [ ] Upload-time rubric selection/creation.
 - [ ] Upload-time reference material selection or task-specific prompt details. **MVP**

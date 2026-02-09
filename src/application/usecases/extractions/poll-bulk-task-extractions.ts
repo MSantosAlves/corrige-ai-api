@@ -1,5 +1,11 @@
 import { OCRClient, type OCRAsyncJobStatus } from '@/infra/providers/ocr/ocr-client';
-import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
+import {
+  ClassRepository,
+  TaskExtractionBatchRepository,
+  TaskExtractionRepository,
+  TaskRepository,
+  UserRepository,
+} from '@/infra/db/repositories';
 import {
   TaskExtractionBatchStatuses,
   TaskExtractionStatuses,
@@ -8,6 +14,12 @@ import {
 } from '@/domain/entities';
 import { enqueueLlmAnalysis } from '@/infra/queues/llm-analysis-queue';
 import { objectIdSchema } from '@/shared/validation';
+import {
+  buildBlockedExtractionResult,
+  getOcrBlockingInfo,
+  INVALID_CONTENT_PT_BR,
+  MALICIOUS_CONTENT_PT_BR,
+} from '@/application/usecases/ocr/ocr-blocking';
 
 const ocrClientInstance = new OCRClient();
 
@@ -29,8 +41,9 @@ const mapBatchStatus = (status: OCRAsyncJobStatus): TaskExtractionBatchStatus =>
 const mapExtractionStatus = (
   status: OCRAsyncJobStatus,
   hasResult: boolean,
+  blockedByOcr: boolean,
 ): 'PENDING' | 'TEXT_EXTRACTION' | 'TEXT_ANALYSIS' | 'DONE' | 'ERROR' => {
-  if (status === 'FAILED' || status === 'CANCELED') {
+  if (blockedByOcr || status === 'FAILED' || status === 'CANCELED') {
     return TaskExtractionStatuses.ERROR;
   }
   if (hasResult) {
@@ -58,12 +71,43 @@ export const pollBulkTaskExtractionsUseCase = async (
 
   const children = jobStatus.children ?? [];
   const updatedExtractions = await Promise.all(
-    children.map((child) =>
-      TaskExtractionRepository.updateByOcrResultId(child.job_id, {
-        status: mapExtractionStatus(child.status, Boolean(child.result)),
-        ocrExtractionResult: child.result ?? null,
-      }),
-    ),
+    children.map(async (child) => {
+      const blockingInfo = getOcrBlockingInfo(child.error ?? null);
+      const analysisResult = blockingInfo.blockedByOcr
+        ? blockingInfo.isMalicious
+          ? MALICIOUS_CONTENT_PT_BR
+          : INVALID_CONTENT_PT_BR
+        : undefined;
+      const ocrExtractionResult = blockingInfo.blockedByOcr
+        ? buildBlockedExtractionResult({
+            blockingInfo,
+            rawError: child.error ?? null,
+          })
+        : (child.result ?? null);
+
+      const updatedExtraction = await TaskExtractionRepository.updateByOcrResultId(child.job_id, {
+        status: mapExtractionStatus(child.status, Boolean(child.result), blockingInfo.blockedByOcr),
+        ocrExtractionResult,
+        analysisResult,
+      });
+
+      if (updatedExtraction && blockingInfo.isMalicious) {
+        const task = await TaskRepository.getById(updatedExtraction.taskId);
+        if (task) {
+          const classItem = await ClassRepository.getById(task.classId);
+          if (classItem) {
+            await UserRepository.blockByOcr({
+              id: classItem.userId,
+              extractionId: updatedExtraction.id,
+              blockedCategory: blockingInfo.blockedCategory ?? 'malicious_content',
+              blockedReason: blockingInfo.blockedReason ?? MALICIOUS_CONTENT_PT_BR,
+            });
+          }
+        }
+      }
+
+      return updatedExtraction;
+    }),
   );
 
   await Promise.all(

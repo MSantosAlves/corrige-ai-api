@@ -55,6 +55,10 @@ describe('Extraction controllers authorization', () => {
       items: [],
       planUsage: 1,
       planQuota: 10,
+      user: {
+        isBlocked: false,
+        blockInfo: null,
+      },
     });
 
     const req = createRequest({
@@ -80,6 +84,10 @@ describe('Extraction controllers authorization', () => {
       ocrJobId: 'ocr-1',
       status: 'PROCESSING',
       items: [],
+      user: {
+        isBlocked: false,
+        blockInfo: null,
+      },
     });
 
     const req = createRequest({
@@ -102,6 +110,10 @@ describe('Extraction controllers authorization', () => {
       ocrJobId: 'ocr-1',
       status: 'DONE',
       items: [],
+      user: {
+        isBlocked: false,
+        blockInfo: null,
+      },
     });
 
     const req = createRequest({

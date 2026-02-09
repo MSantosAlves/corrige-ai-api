@@ -1,13 +1,23 @@
 import type { Request } from 'express';
 import { z } from 'zod';
 
-import { OCRClient, type OCRDocumentType } from '@/infra/providers/ocr/ocr-client';
+import {
+  OCRClient,
+  OCRServiceError,
+  type OCRDocumentType,
+} from '@/infra/providers/ocr/ocr-client';
 import { saveTaskExtractionUseCase } from '@/application/usecases/extractions';
 import { LlmClient } from '@/infra/providers/llm/llm-client';
 import { GradeCriteriaRepository, TaskRepository, UserRepository } from '@/infra/db/repositories';
 import { buildGradeCriteriaPrompt } from '@/infra/providers/llm/prompts/grade-criteria';
 import { assertTaskOwnedByUser } from '@/application/usecases/shared/ownership';
 import { objectIdSchema } from '@/shared/validation';
+import {
+  buildBlockedExtractionResult,
+  getOcrBlockingInfoFromErrorPayload,
+  INVALID_CONTENT_PT_BR,
+  MALICIOUS_CONTENT_PT_BR,
+} from './ocr-blocking.js';
 
 const ocrClientInstance = new OCRClient();
 const llmClientInstance = new LlmClient();
@@ -47,25 +57,94 @@ export const extractTextUseCase = async (req: Request) => {
   if (taskId) {
     await assertTaskOwnedByUser(taskId, userId);
   }
+  await UserRepository.assertNotBlocked(userId);
 
   let reservedQuota = false;
   let reservedUserUsage = 0;
   let reservedUserQuota = 0;
+  let userBlockState: { isBlocked: boolean; blockInfo: Record<string, unknown> | null } = {
+    isBlocked: false,
+    blockInfo: null,
+  };
 
   try {
     const reservedUser = await UserRepository.reservePlanUsage({ id: userId, amount: 1 });
     reservedQuota = true;
     reservedUserUsage = reservedUser.planUsage;
     reservedUserQuota = reservedUser.planQuota;
+    userBlockState = {
+      isBlocked: reservedUser.isBlocked,
+      blockInfo: reservedUser.blockInfo,
+    };
 
-    const ocrResponse = await ocrClientInstance.extract({
-      fileName: file.originalname,
-      data: file.buffer,
-      documentType: documentType as OCRDocumentType,
-      language,
-      preserveLayout,
-      qualityThreshold,
-    });
+    let ocrResponse: Awaited<ReturnType<typeof ocrClientInstance.extract>>;
+    try {
+      ocrResponse = await ocrClientInstance.extract({
+        fileName: file.originalname,
+        data: file.buffer,
+        documentType: documentType as OCRDocumentType,
+        language,
+        preserveLayout,
+        qualityThreshold,
+      });
+    } catch (error) {
+      if (error instanceof OCRServiceError) {
+        const blockingInfo = getOcrBlockingInfoFromErrorPayload(error.payload);
+        if (blockingInfo.blockedByOcr) {
+          const analysis = blockingInfo.isMalicious
+            ? MALICIOUS_CONTENT_PT_BR
+            : INVALID_CONTENT_PT_BR;
+          const blockedExtractionResult = buildBlockedExtractionResult({
+            blockingInfo,
+            rawError: error.payload?.error ?? { message: error.message },
+          });
+
+          let extractionId: string | null = null;
+          if (taskId) {
+            try {
+              const extraction = await saveTaskExtractionUseCase({
+                userId,
+                taskId,
+                ocrExtractionResult: blockedExtractionResult,
+                analysisResult: analysis,
+                filename: file.originalname,
+              });
+              extractionId = extraction.id;
+            } catch (saveError) {
+              console.error('Erro ao salvar extração bloqueada no banco:', saveError);
+            }
+          }
+
+          if (blockingInfo.isMalicious) {
+            await UserRepository.blockByOcr({
+              id: userId,
+              extractionId: extractionId ?? 'unknown_extraction',
+              blockedCategory: blockingInfo.blockedCategory ?? 'malicious_content',
+              blockedReason: blockingInfo.blockedReason ?? 'Documento bloqueado por classificador.',
+            });
+            userBlockState = {
+              isBlocked: true,
+              blockInfo: {
+                extractionId: extractionId ?? 'unknown_extraction',
+                blockedCategory: blockingInfo.blockedCategory ?? 'malicious_content',
+                blockedReason:
+                  blockingInfo.blockedReason ?? 'Documento bloqueado por classificador.',
+                blockedAt: new Date().toISOString(),
+              },
+            };
+          }
+
+          return {
+            ...blockedExtractionResult,
+            analysis,
+            planUsage: reservedUserUsage,
+            planQuota: reservedUserQuota,
+            user: userBlockState,
+          };
+        }
+      }
+      throw error;
+    }
 
     let analysis = '';
     const extractedText =
@@ -113,6 +192,7 @@ export const extractTextUseCase = async (req: Request) => {
       analysis,
       planUsage: reservedUserUsage,
       planQuota: reservedUserQuota,
+      user: userBlockState,
     };
   } catch (error) {
     if (reservedQuota) {

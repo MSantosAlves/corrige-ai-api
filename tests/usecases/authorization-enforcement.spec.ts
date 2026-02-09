@@ -54,6 +54,8 @@ describe('Authorization enforcement in usecases', () => {
       planType: 'FREE',
       planQuota: 10,
       planUsage: 0,
+      isBlocked: false,
+      blockInfo: null,
     });
     vi.mocked(assertTaskOwnedByUser).mockRejectedValue(
       new Error('Recurso não encontrado ou sem permissão.'),

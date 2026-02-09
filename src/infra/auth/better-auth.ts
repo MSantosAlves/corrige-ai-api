@@ -37,6 +37,7 @@ type AuthUserDocument = {
   plan_type?: PlanType;
   plan_quota?: number;
   plan_usage?: number;
+  is_blocked?: boolean;
 };
 
 const buildUserIdQuery = (userId: string): Filter<AuthUserDocument> => {
@@ -112,6 +113,12 @@ export const auth = betterAuth({
         defaultValue: 0,
         input: false,
       },
+      is_blocked: {
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
   socialProviders: {
@@ -180,17 +187,20 @@ export const auth = betterAuth({
       const nextPlanType = (user.plan_type as PlanType | undefined) ?? PlanType.FREE;
       const nextPlanQuota = typeof user.plan_quota === 'number' ? user.plan_quota : 10;
       const nextPlanUsage = typeof user.plan_usage === 'number' ? user.plan_usage : 0;
+      const nextIsBlocked = user.is_blocked === true;
 
       if (
         user.plan_type !== nextPlanType ||
         user.plan_quota !== nextPlanQuota ||
-        user.plan_usage !== nextPlanUsage
+        user.plan_usage !== nextPlanUsage ||
+        user.is_blocked !== nextIsBlocked
       ) {
         await usersCollection.updateOne(buildUserIdQuery(userId), {
           $set: {
             plan_type: nextPlanType,
             plan_quota: nextPlanQuota,
             plan_usage: nextPlanUsage,
+            is_blocked: nextIsBlocked,
           },
         });
       }

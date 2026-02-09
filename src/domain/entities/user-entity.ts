@@ -5,6 +5,13 @@ export enum PlanType {
   PREMIUM = 'PREMIUM',
 }
 
+export type UserBlockInfo = {
+  extractionId: string;
+  blockedCategory: string;
+  blockedReason: string;
+  blockedAt: string;
+};
+
 export type UserEntity = {
   id: string;
   name: string;
@@ -13,6 +20,8 @@ export type UserEntity = {
   planType: PlanType;
   planQuota: number;
   planUsage: number;
+  isBlocked: boolean;
+  blockInfo: UserBlockInfo | null;
 };
 
 export type PublicUserEntity = Omit<UserEntity, 'password'>;

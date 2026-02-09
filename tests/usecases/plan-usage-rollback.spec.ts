@@ -10,6 +10,7 @@ vi.mock('@/infra/providers/ocr/ocr-client', () => ({
     extract: extractMock,
     extractAsyncBulk: extractAsyncBulkMock,
   })),
+  OCRServiceError: class OCRServiceError extends Error {},
 }));
 
 vi.mock('@/infra/providers/llm/llm-client', () => ({
@@ -29,6 +30,8 @@ vi.mock('@/application/usecases/shared/ownership', () => ({
 
 vi.mock('@/infra/db/repositories', () => ({
   UserRepository: {
+    assertNotBlocked: vi.fn(),
+    blockByOcr: vi.fn(),
     reservePlanUsage: vi.fn(),
     rollbackPlanUsage: vi.fn(),
   },
@@ -69,6 +72,8 @@ describe('Plan usage rollback', () => {
       planType: 'FREE',
       planQuota: 10,
       planUsage: 1,
+      isBlocked: false,
+      blockInfo: null,
     });
     vi.mocked(UserRepository.rollbackPlanUsage).mockResolvedValue({
       id: 'user-a',
@@ -78,6 +83,8 @@ describe('Plan usage rollback', () => {
       planType: 'FREE',
       planQuota: 10,
       planUsage: 0,
+      isBlocked: false,
+      blockInfo: null,
     });
     extractMock.mockRejectedValue(new Error('OCR unavailable'));
 
@@ -109,6 +116,8 @@ describe('Plan usage rollback', () => {
       planType: 'FREE',
       planQuota: 10,
       planUsage: 3,
+      isBlocked: false,
+      blockInfo: null,
     });
     vi.mocked(UserRepository.rollbackPlanUsage).mockResolvedValue({
       id: 'user-a',
@@ -118,6 +127,8 @@ describe('Plan usage rollback', () => {
       planType: 'FREE',
       planQuota: 10,
       planUsage: 1,
+      isBlocked: false,
+      blockInfo: null,
     });
     extractAsyncBulkMock.mockRejectedValue(new Error('OCR bulk unavailable'));
 

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { TaskExtractionBatchRepository, TaskExtractionRepository } from '@/infra/db/repositories';
+import {
+  TaskExtractionBatchRepository,
+  TaskExtractionRepository,
+  UserRepository,
+} from '@/infra/db/repositories';
 import {
   TaskExtractionBatchStatuses,
   TaskExtractionStatuses,
@@ -23,6 +27,10 @@ export const getBulkTaskExtractionsUseCase = async (data: {
   ocrJobId: string;
   status: TaskExtractionBatchStatus;
   items: TaskExtractionEntity[];
+  user: {
+    isBlocked: boolean;
+    blockInfo: Record<string, unknown> | null;
+  };
 }> => {
   const input = getSchema.parse(data);
   const batch = await assertBatchOwnedByUser(input.batchId, input.userId);
@@ -43,11 +51,19 @@ export const getBulkTaskExtractionsUseCase = async (data: {
   if (pipelineStatus !== batch.status) {
     await TaskExtractionBatchRepository.updateStatus(batch.id, pipelineStatus);
   }
+  const user = await UserRepository.findById(input.userId);
+  if (!user) {
+    throw new Error('Usuário não encontrado.');
+  }
 
   return {
     batchId: batch.id,
     ocrJobId: batch.ocrJobId,
     status: pipelineStatus,
     items,
+    user: {
+      isBlocked: user.isBlocked,
+      blockInfo: user.blockInfo,
+    },
   };
 };

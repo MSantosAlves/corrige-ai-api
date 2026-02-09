@@ -89,7 +89,7 @@ export type OCRJobStatusResponse = {
   error?: Record<string, unknown>;
 };
 
-type OCRErrorResponse = {
+export type OCRErrorResponse = {
   error?: {
     code?: string;
     message?: string;
@@ -97,6 +97,18 @@ type OCRErrorResponse = {
     suggestion?: string;
   };
 };
+
+export class OCRServiceError extends Error {
+  statusCode: number;
+  payload: OCRErrorResponse | null;
+
+  constructor(message: string, statusCode: number, payload: OCRErrorResponse | null) {
+    super(message);
+    this.name = 'OCRServiceError';
+    this.statusCode = statusCode;
+    this.payload = payload;
+  }
+}
 
 export class OCRClient {
   private baseUrl: string;
@@ -134,10 +146,10 @@ export class OCRClient {
       });
 
       if (!response.ok) {
-        const errorPayload = (await this.safeJson<OCRErrorResponse>(response)) ?? {};
+        const errorPayload = await this.safeJson<OCRErrorResponse>(response);
         const message =
-          errorPayload.error?.message ?? `OCR request failed with status ${response.status}.`;
-        throw new Error(message);
+          errorPayload?.error?.message ?? `OCR request failed with status ${response.status}.`;
+        throw new OCRServiceError(message, response.status, errorPayload);
       }
 
       return (await response.json()) as OCRExtractResponse;
@@ -199,10 +211,10 @@ export class OCRClient {
       });
 
       if (!response.ok) {
-        const errorPayload = (await this.safeJson<OCRErrorResponse>(response)) ?? {};
+        const errorPayload = await this.safeJson<OCRErrorResponse>(response);
         const message =
-          errorPayload.error?.message ?? `OCR request failed with status ${response.status}.`;
-        throw new Error(message);
+          errorPayload?.error?.message ?? `OCR request failed with status ${response.status}.`;
+        throw new OCRServiceError(message, response.status, errorPayload);
       }
 
       return (await response.json()) as OCRJobStatusResponse;
@@ -269,10 +281,10 @@ export class OCRClient {
       });
 
       if (!response.ok) {
-        const errorPayload = (await this.safeJson<OCRErrorResponse>(response)) ?? {};
+        const errorPayload = await this.safeJson<OCRErrorResponse>(response);
         const message =
-          errorPayload.error?.message ?? `OCR request failed with status ${response.status}.`;
-        throw new Error(message);
+          errorPayload?.error?.message ?? `OCR request failed with status ${response.status}.`;
+        throw new OCRServiceError(message, response.status, errorPayload);
       }
 
       return (await response.json()) as T;
